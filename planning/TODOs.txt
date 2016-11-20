@@ -1,0 +1,18 @@
+Einfache Implementation für ~2000 Documents [Marc, Philip][27.11.]
+	TinyIR
+		was ist vorhanden
+Report [Tobias] []
+	from beginning
+	shareLatex
+Analysise Data and Queries [Tobias] [20.11.17]
+Fragen: How to Score [Philip] [23.11.16]
+Documents -> Index []
+	how? stemming etc.
+	performance
+Peroformance Analyse Reader []
+Ranking Models [Tobias] [27.11.]
+	Find one Language Model
+		Reseach
+Parameter tuning []
+Performance Tuning
+	List interseciton etc
