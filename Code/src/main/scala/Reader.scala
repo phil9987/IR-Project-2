@@ -12,6 +12,7 @@ import ch.ethz.dal.tinyir.io.TipsterStream
   */
 class TipsterParsePlus(is: InputStream) extends TipsterParse(is){
   override def title : String = read(doc.getElementsByTagName("HEAD"))
+  override def content: String = title + " " + body
 }
 
 /**
@@ -24,14 +25,24 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
 }
 
 /**
+  * Information for a document about a word
+  * @param docName - name of document (TODO: convert to id and create docName->id dictionary)
+  * @param numOcurrence - total number of occurrences of word in document
+  * @param numWords - total number of words in document (TODO: remove redundancy)
+  * @param isInHeader - occurs this word (at least once) in the header of the document?
+  */
+case class WordInfo(docName: String, numOcurrence: Int, numWords: Int, isInHeader: Boolean)
+
+
+/**
   * Base class for the reader.
   * Implements structure and functions common to all implementation of Reader.
   */
 class DocumentReader(){
   private val logger = new Logger("BaseReader")
-
   protected val wordCounts = scala.collection.mutable.HashMap[String, Int]()
   var docCount = 0
+  val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
 
   protected def init() = {
     logger.log("init")
@@ -42,9 +53,13 @@ class DocumentReader(){
     logger.log("init: Counting word-occurences in corpus...")
 
     for (doc <- tipster.stream.take(20)) {
-      doc.tokens.distinct.foreach(x => wordCounts(x) = 1 + wordCounts.getOrElse(x, 0))
+      doc.tokens.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>
+        wordCounts(word) = 1 + wordCounts.getOrElse(word, 0)
+          postings(word) ::= new WordInfo(doc.name, count, doc.tokens.length, false)
+      }
     }
-
+    val dictionary = wordCounts.keys.toList.sorted.zipWithIndex.toMap
+    logger.log(s"init: Dictionary size: to ${dictionary.size}")
   }
 
   init()
