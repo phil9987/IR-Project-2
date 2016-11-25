@@ -21,7 +21,7 @@ project/plugins/project/
 .ensime
 
 
-src/main/resources/data/
+Code/src/main/resources/
 
 # Github default Jetbrains
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and Webstorm
