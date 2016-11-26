@@ -1,0 +1,28 @@
+Language  model (Unigram)
+    sources :
+        -http://nlp.stanford.edu/IR-book/html/htmledition/finite-automata-and-language-models-1.html
+    advices :
+        -use log-probabilities
+        -we need to smooth probabilities in our document language models: to discount non-zero probabilities
+            and to give some probability mass to unseen words
+    variations :
+        -Do we want to model STOP and (1-STOP) probabilities?
+        -IN BAYES FORMULA : "The prior probability of a document $P(d)$ is often treated as uniform across all $d$
+            and so it can also be ignored, but we could implement a genuine prior which could include criteria like
+            authority, length, genre, newness, and number of previous people who have read the document."
+        -Smoothing possibilities :
+            o Adding a number to the observed counts and renormalize
+            o  simple idea that works well in practice is to use a mixture between a document-specific multinomial
+                distribution and a multinomial distribution estimated from the entire collection:
+            o Bayesian updating process [http://nlp.stanford.edu/IR-book/html/htmledition/estimating-the-query-generation-probability-1.html]
+
+    notes :
+        -"most language-modeling work in IR has used unigram language models"
+
+Tf-Idf model
+    sources :
+        -http://nlp.stanford.edu/IR-book/html/htmledition/inverse-document-frequency-1.html
+    variations :
+        -as idf, use document frequency (number of documents that contain term), or collection frequency (number of occurences in total?)
+        -do we use the log in the idf?
+        -do we somehow normalize the tf?
