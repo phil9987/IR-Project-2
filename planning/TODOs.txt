@@ -1,16 +1,19 @@
-Einfache Implementation für ~2000 Documents [Marc, Philip][27.11.]
-	TinyIR
-		was ist vorhanden
+Einfache Implementation für ~2000 Documents [Marc, Philip, Tobias][02.12.]
+	Philip: Reader, InvertedIndex
+	Marc: Rest [Di-Abend: Raking Model]
+	Tobais: Rankin Models
 Report [Tobias] []
 	from beginning
 	shareLatex
-Analysise Data and Queries [Tobias] [20.11.17]
-Fragen: How to Score [Philip] [23.11.16]
+Analysise Data and Queries [Tobias] [20.11.17] [done]
+Fragen: How to Score [Philip] [23.11.16] [done]
+	Scoring: documente die wir nicht kennen, sind 0-results
+		wenn andere search engines das nichtmal retrieven -> ists nicht notwendig
 Documents -> Index []
 	how? stemming etc.
 	performance
 Peroformance Analyse Reader []
-Ranking Models [Tobias] [27.11.]
+Ranking Models [Tobias] [27.11.] [done]
 	Find one Language Model
 		Reseach
 Parameter tuning []
