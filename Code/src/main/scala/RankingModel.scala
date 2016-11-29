@@ -1,7 +1,7 @@
 /**
   * Created by marc on 29/11/16.
   */
-abstract class RankingModel {
+abstract class RankingModel(invertedIndex: InvertedIndex) {
 
 
   /**
