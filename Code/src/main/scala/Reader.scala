@@ -4,7 +4,6 @@ import ch.ethz.dal.tinyir.processing.{TipsterParse, XMLDocument}
 import ch.ethz.dal.tinyir.io.TipsterStream
 //import ch.ethz.dal.tinyir.processing.{Tokenizer, XMLDocument}
 
-
 /**
   * extends TipsterParse class of provided TinyIR library by also parsing the title (marked with HEAD) of the tipster
   * articles.
@@ -25,13 +24,26 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
 }
 
 /**
-  * Information for a document about a word
-  * @param docName - name of document (TODO: convert to id and create docName->id dictionary)
+  * Information to a document about a word
+  * @param docNb - document identifier
   * @param numOcurrence - total number of occurrences of word in document
-  * @param numWords - total number of words in document (TODO: remove redundancy)
   * @param isInHeader - occurs this word (at least once) in the header of the document?
   */
-case class WordInfo(docName: String, numOcurrence: Int, numWords: Int, isInHeader: Boolean)
+case class WordInfo(docNb: Int, numOcurrence: Int, isInHeader: Boolean)
+
+/**
+  * Information to a document
+  * @param docName name of document (like it's parsed)
+  * @param numWords total number of words in document
+  */
+case class DocInfo(docName: String, numWords: Int)
+
+/**
+  * Holds the corpus-wide counts for a certain word
+  * @param docCount
+  * @param frequencyCount
+  */
+case class WordCount(docCount: Int, frequencyCount: Int)
 
 
 /**
@@ -40,9 +52,10 @@ case class WordInfo(docName: String, numOcurrence: Int, numWords: Int, isInHeade
   */
 class DocumentReader(){
   private val logger = new Logger("BaseReader")
-  protected val wordCounts = scala.collection.mutable.HashMap[String, Int]()
+  protected val wordCounts = scala.collection.mutable.HashMap[String, WordCount]()
   var docCount = 0
   val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
+  val idToDocinfos = new scala.collection.mutable.HashMap[Int, DocInfo];
 
   protected def init() = {
     logger.log("init")
@@ -52,11 +65,16 @@ class DocumentReader(){
     logger.log("init: Number of files in zips = " + docCount)
     logger.log("init: Counting word-occurences in corpus...")
 
-    for (doc <- tipster.stream.take(20)) {
+    //TODO: term-frequency over whole collection
+    var docNb = 0
+    for (doc <- tipster.stream.take(10000)) {
+      idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
       doc.tokens.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>
-        wordCounts(word) = 1 + wordCounts.getOrElse(word, 0)
-          postings(word) ::= new WordInfo(doc.name, count, doc.tokens.length, false)
+        wordCounts(word) = new WordCount(wordCounts.getOrElse(word, new WordCount(0,0)).docCount + 1,
+          wordCounts.getOrElse(word, new WordCount(0,0)).frequencyCount + count)
+          postings(word) ::= new WordInfo(docNb, count, false)
       }
+      docNb += 1
     }
     val dictionary = wordCounts.keys.toList.sorted.zipWithIndex.toMap
     logger.log(s"init: Dictionary size: to ${dictionary.size}")
