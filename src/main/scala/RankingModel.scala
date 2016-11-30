@@ -15,6 +15,6 @@ abstract class RankingModel(invertedIndex: InvertedIndex) {
     * @param query List of query words.
     * @return A ranked List of documentIds.
     */
-  abstract def query(query: List[String]): List[Int]
+  def query(query: List[String]): List[Int]
 
 }

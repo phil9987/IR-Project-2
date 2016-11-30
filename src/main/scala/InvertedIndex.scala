@@ -6,11 +6,11 @@ abstract class InvertedIndex {
   /**
     * Maps a word to the position in the dictionary.
     */
-  abstract val dictionary : Map[String, Int]
+  val dictionary : Map[String, Int]
 
   /**
     * Provides a list of DocInfos for a given word (inverted Index).
     */
-  abstract val invertedIndex : Map[String, List[DocInfo]]
+  val invertedIndex : Map[String, List[DocInfo]]
 
 }
