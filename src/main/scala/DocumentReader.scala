@@ -45,17 +45,17 @@ case class DocInfo(docName: String, numWords: Int)
   */
 case class WordCount(docCount: Int, frequencyCount: Int)
 
-
 /**
   * Base class for the reader.
   * Implements structure and functions common to all implementation of Reader.
   */
-class DocumentReader(){
+class DocumentReader(preprocessor: WordPreprocessor){
   private val logger = new Logger("BaseReader")
   protected val wordCounts = scala.collection.mutable.HashMap[String, WordCount]()
   var docCount = 0
   val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
   val idToDocinfos = new scala.collection.mutable.HashMap[Int, DocInfo];
+  var dictionary : Map[String, Int] = null
 
   protected def init() = {
     logger.log("init")
@@ -69,14 +69,15 @@ class DocumentReader(){
     var docNb = 0
     for (doc <- tipster.stream.take(10000)) {
       idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
-      doc.tokens.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>
-        wordCounts(word) = new WordCount(wordCounts.getOrElse(word, new WordCount(0,0)).docCount + 1,
-          wordCounts.getOrElse(word, new WordCount(0,0)).frequencyCount + count)
+      val words = preprocessor.preprocess(doc.tokens)
+      words.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>
+          val wc = wordCounts.getOrElse(word, new WordCount(0,0))
+          wordCounts(word) = new WordCount(wc.docCount + 1, wc.frequencyCount + count)
           postings(word) ::= new WordInfo(docNb, count, false)
       }
       docNb += 1
     }
-    val dictionary = wordCounts.keys.toList.sorted.zipWithIndex.toMap
+    dictionary = wordCounts.keys.toList.sorted.zipWithIndex.toMap
     logger.log(s"init: Dictionary size: to ${dictionary.size}")
   }
 
