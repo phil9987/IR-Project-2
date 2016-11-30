@@ -24,9 +24,9 @@ class Logger(name: String) {
     val now = Calendar.getInstance.getTime
     val sb = new StringBuilder
     sb ++= "["
-    sb ++= name
-    sb ++= "] ["
     sb ++= dateFormat.format(now)
+    sb ++= "] ["
+    sb ++= name
     sb ++= "] "
     sb ++= text
     println(sb.toString)
