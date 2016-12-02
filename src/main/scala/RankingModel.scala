@@ -50,16 +50,16 @@ class DefaultRankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrepro
   }
 }
 
-class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, reader : DocumentReader) extends RankingModel(invertedIndex, preprocessor)
+class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r : DocumentReader) extends RankingModel(invertedIndex, preprocessor)
 {
   val logger = new Logger("LanuageModel")
 
   def scoringFunction(infoList : List[ExtendedWordInfo]): Double = {
     val lambda = 0.8
-    val document = infoList(0).docNb
-    val docLength = reader.idToDocinfos(document).numWords
-    //TODO : Replace with real total word counts
-    infoList.map( x => lambda * x.numOccurrence / docLength + (1-lambda) * (reader.wordCounts(x.word).frequencyCount )/ 1000000 ).product
+    val docLength = r.idToDocinfos(infoList(0).docNb).numWords
+    infoList.map(
+        x => lambda * x.numOccurrence / docLength + (1-lambda) * (r.wordCounts(x.word).frequencyCount )/ r.totalNumberOfWords
+    ).product
   }
 
   def query(query: List[String]): List[Int] = {
@@ -73,7 +73,46 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
     println(tfMap.take(300))
     val scoresPerDoc = tfMap.mapValues(scoringFunction(_))
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(300)
-    println(rankedDocs.map( x=> (reader.idToDocinfos(x._1).docName, x._1, x._2)))
+    println(rankedDocs.map( x=> (r.idToDocinfos(x._1).docName, x._1, x._2)))
+    rankedDocs.map(_._1)
+
+  }
+}
+
+
+class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreprocessor, r: DocumentReader) extends RankingModel(invertedIndex, preprocessor)
+{
+  val logger = new Logger("TFModel")
+
+  def normalize(v : List[Double]): List[Double] = {
+    val divisor = math.sqrt(v.map(x=> x * x).sum)
+    v.map( _ / divisor)
+  }
+
+  def multiply(x : List[Double], y : List[Double]): Double = {
+    assert(x.length == y.length)
+    (normalize(x) zip normalize(y)).map( x=> x._1 * x._2 ).sum
+  }
+
+
+  def scoringFunction(infoList : List[ExtendedWordInfo], query : List[String], weights : String ="ntc.nnc"): Double = {
+    //todo : replace totalwords (10000)
+    val docVector = infoList.sortBy(_.word).map(x => x.numOccurrence * math.log(10000 / r.wordCounts(x.word).docCount))
+    val queryVector = query.sorted.map(word => 1.0 )
+    multiply(docVector, queryVector)
+  }
+
+  def query(query: List[String]): List[Int] = {
+    //preprocess words
+    logger.log("Querying with: " + query.mkString("[", ", ", "]"))
+    val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet)
+    logger.log("Using words: " + words.mkString("[", ", ", "]"))
+
+    val tfMap = invertedIndex.naiveIntersect(words.toList)
+    println(tfMap.take(300))
+    val scoresPerDoc = tfMap.mapValues(scoringFunction(_, query))
+    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100)
+    println(rankedDocs.map( x=> (r.idToDocinfos(x._1).docName, x._1, x._2)))
     rankedDocs.map(_._1)
 
   }

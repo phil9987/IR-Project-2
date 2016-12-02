@@ -4,11 +4,11 @@ object SearchEngine{
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp)
     val ii = new DefaultInvertedIndex(dr)
-    val rm = new LanguageModel(ii, wp, dr)
+    val rm = new VectorSpaceModel(ii, wp, dr)
     val logger = new Logger("SearchEngine")
 
 
-    rm.query("market".split(' ').toList)
+    rm.query("market entry".split(' ').toList)
     /*
     println(QueryMetric.codeToQuery(50))
 
