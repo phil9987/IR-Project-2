@@ -82,7 +82,7 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
 
 class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreprocessor, r: DocumentReader) extends RankingModel(invertedIndex, preprocessor)
 {
-  val logger = new Logger("TFModel")
+  val logger = new Logger("VectorSpaceModel")
 
   def normalize(v : List[Double]): List[Double] = {
     val divisor = math.sqrt(v.map(x=> x * x).sum)
@@ -95,9 +95,8 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
   }
 
 
-  def scoringFunction(infoList : List[ExtendedWordInfo], query : List[String], weights : String ="ntc.nnc"): Double = {
-    //todo : replace totalwords (10000)
-    val docVector = infoList.sortBy(_.word).map(x => x.numOccurrence * math.log(10000 / r.wordCounts(x.word).docCount))
+  def scoringFunction(infoList : List[ExtendedWordInfo], query : List[String]): Double = {
+    val docVector = infoList.sortBy(_.word).map(x => x.numOccurrence * math.log(r.numOfDocs / r.wordCounts(x.word).docCount))
     val queryVector = query.sorted.map(word => 1.0 )
     multiply(docVector, queryVector)
   }
