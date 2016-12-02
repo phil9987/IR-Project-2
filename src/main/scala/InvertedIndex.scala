@@ -2,7 +2,7 @@
   * Created by marc on 29/11/16.
   */
 abstract class InvertedIndex(documentReader: DocumentReader) {
-
+  val logger = new Logger("InvertedIndex")
   /**
     * Maps a word to the position in the dictionary.
     */
@@ -17,8 +17,9 @@ abstract class InvertedIndex(documentReader: DocumentReader) {
     * given a list of query term, returns a map from docNb to the ( Word, Tf of word )
    */
   def naiveIntersect ( queryTerms : List[String]): Map[Int, List[ExtendedWordInfo]] =  {
-
+      var count = 0
       def extend(infoList : List[ExtendedWordInfo]) : List[ExtendedWordInfo] =  {
+        count += 1
         var newList = infoList
         queryTerms.foreach{
         case (term )=> {

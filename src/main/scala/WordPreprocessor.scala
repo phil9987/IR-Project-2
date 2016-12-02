@@ -1,5 +1,5 @@
 import com.github.aztek.porterstemmer.PorterStemmer
-
+import ch.ethz.dal.tinyir.processing.StopWords
 /**
   * Created by marc on 30/11/16.
   */
@@ -23,6 +23,5 @@ class WordPreprocessor {
 
 
   def preprocess(tokens : List[String]) : List[String] =
-    tokens.map(_.toLowerCase).map(cachedStem)
-
+    tokens.map(_.toLowerCase).filter(!StopWords.stopWords.contains(_)).map(cachedStem)
 }
