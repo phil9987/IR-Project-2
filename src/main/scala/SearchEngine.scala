@@ -7,7 +7,9 @@ object SearchEngine{
     val rm = new LanguageModel(ii, wp, dr)
     val logger = new Logger("SearchEngine")
 
-    rm.query("the cat jumps asdf elephant".split(' ').toList)
+
+    rm.query("zurich zoo".split(' ').toList)
+    /*
     println(QueryMetric.codeToQuery(50))
 
     for(queryId <- QueryMetric.codeToQuery.keys)
@@ -16,6 +18,6 @@ object SearchEngine{
         val ranking = rm.query(query.split(' ').toList)
         //TODO evalute
       }
-
+   */
   }
 }

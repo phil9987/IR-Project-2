@@ -72,8 +72,8 @@ class DocumentReader(preprocessor: WordPreprocessor){
 
     //TODO: term-frequency over whole collection
     var docNb = 0
-    for (doc <- tipster.stream.take(10000)) {
-      logger.log(s"Reading document ${docNb}", "BaseReader", 10000)
+    for (doc <- tipster.stream.take(30000)) {
+      logger.log(s"Reading document ${docNb }", "BaseReader", 10000)
       idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
       val words = preprocessor.preprocess(doc.tokens)
       words.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>

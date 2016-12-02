@@ -55,7 +55,7 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
   val logger = new Logger("LanuageModel")
 
   def scoringFunction(infoList : List[ExtendedWordInfo]): Double = {
-    val lambda = 1.0
+    val lambda = 0.8
     val document = infoList(0).docNb
     val docLength = reader.idToDocinfos(document).numWords
     //TODO : Replace with real total word counts
@@ -70,10 +70,10 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
     logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
     val tfMap = invertedIndex.naiveIntersect(words.toList)
-    println(tfMap.take(20))
+    println(tfMap.take(10))
     val scoresPerDoc = tfMap.mapValues(scoringFunction(_))
-    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100)
-    println(rankedDocs)
+    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(10)
+    println(rankedDocs.map( x=> (reader.idToDocinfos(x._1).docName, x._1, x._2)))
     rankedDocs.map(_._1)
 
   }
