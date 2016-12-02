@@ -1,8 +1,7 @@
 import java.io.{File, InputStream}
 
-import ch.ethz.dal.tinyir.processing.{TipsterParse, XMLDocument}
+import ch.ethz.dal.tinyir.processing.{TipsterParse, XMLDocument, Tokenizer}
 import ch.ethz.dal.tinyir.io.TipsterStream
-//import ch.ethz.dal.tinyir.processing.{Tokenizer, XMLDocument}
 
 /**
   * extends TipsterParse class of provided TinyIR library by also parsing the title (marked with HEAD) of the tipster
@@ -73,13 +72,14 @@ class DocumentReader(preprocessor: WordPreprocessor){
     //TODO: term-frequency over whole collection
     var docNb = 0
     for (doc <- tipster.stream.take(10000)) {
-      logger.log(s"Reading document ${docNb}", "BaseReader", 10000)
+      logger.log(s"Reading document ${docNb}", "BaseReader", 1000)
       idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
+      val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
       val words = preprocessor.preprocess(doc.tokens)
       words.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>
           val wc = wordCounts.getOrElse(word, new WordCount(0,0))
           wordCounts(word) = new WordCount(wc.docCount + 1, wc.frequencyCount + count)
-          postings(word) ::= new WordInfo(docNb, count, false)
+          postings(word) ::= new WordInfo(docNb, count, titleWords.contains(word))
       }
       docNb += 1
     }
