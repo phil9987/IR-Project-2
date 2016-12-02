@@ -19,13 +19,13 @@ Fragen: How to Score [Philip] [23.11.16] [done]
 Documents -> Index []
 	how? stemming etc.
 	performance
-Peroformance Analyse Reader []
+Performance Analyse Reader []
 Parameter tuning []
     Language Model: lambda
     Idf: combinations of tf-idf variant, bm25
     Title, fancy hit in language model
     baysian smoothing
-    P(d) prior distribution
+    P(d) prior distribution => here use a distribution of document lengths?
     eleiminate queries based on their idf
 
 Performance Tuning

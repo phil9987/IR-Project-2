@@ -70,9 +70,9 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
     logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
     val tfMap = invertedIndex.naiveIntersect(words.toList)
-    println(tfMap.take(10))
+    println(tfMap.take(300))
     val scoresPerDoc = tfMap.mapValues(scoringFunction(_))
-    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(10)
+    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(300)
     println(rankedDocs.map( x=> (reader.idToDocinfos(x._1).docName, x._1, x._2)))
     rankedDocs.map(_._1)
 

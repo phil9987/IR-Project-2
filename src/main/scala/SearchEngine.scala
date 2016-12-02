@@ -8,7 +8,7 @@ object SearchEngine{
     val logger = new Logger("SearchEngine")
 
 
-    rm.query("zurich zoo".split(' ').toList)
+    rm.query("market".split(' ').toList)
     /*
     println(QueryMetric.codeToQuery(50))
 
