@@ -60,6 +60,7 @@ class DocumentReader(preprocessor: WordPreprocessor){
   val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
   val idToDocinfos = new scala.collection.mutable.HashMap[Int, DocInfo];
   var dictionary : Map[String, Int] = null
+  var totalNumberOfWords = 0
 
   protected def init() = {
     logger.log("init")
@@ -80,11 +81,13 @@ class DocumentReader(preprocessor: WordPreprocessor){
           val wc = wordCounts.getOrElse(word, new WordCount(0,0))
           wordCounts(word) = new WordCount(wc.docCount + 1, wc.frequencyCount + count)
           postings(word) ::= new WordInfo(docNb, count, titleWords.contains(word))
+          totalNumberOfWords += count
       }
       docNb += 1
     }
+    logger.log(s"init: Total number of words: $totalNumberOfWords")
     dictionary = wordCounts.keys.toList.sorted.zipWithIndex.toMap
-    logger.log(s"init: Dictionary size: to ${dictionary.size}")
+    logger.log(s"init: Dictionary size: ${dictionary.size}")
   }
 
   init()
