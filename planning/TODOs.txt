@@ -1,11 +1,18 @@
-Einfache Implementation für ~2000 Documents [Marc, Philip, Tobias][02.12.]
-	Philip: Reader, InvertedIndex
-	Marc: Rest [Di-Abend: Raking Model]
-	Tobais: Rankin Models
+Implementation Refinement
+    Reader: Title-Words [Philip]
+    Stop-Word-Removal [Philip]
+    InvertedIndex: Overall counts, all words [Philip]
+    Finish Lanuage Model [Tobias]
+    Tf-Idf Model [Tobias]
+    Spell Occurrence (?) correctly [Philip]
+    Evaluation Metrics [Marc]
+    initial Benchmark [Marc]
+    make Inverted Index switchable [Marc]
+    List-intersection (low-priority) [Marc]
+
 Report [Tobias] []
 	from beginning
 	shareLatex
-Analysise Data and Queries [Tobias] [20.11.17] [done]
 Fragen: How to Score [Philip] [23.11.16] [done]
 	Scoring: documente die wir nicht kennen, sind 0-results
 		wenn andere search engines das nichtmal retrieven -> ists nicht notwendig
@@ -13,9 +20,13 @@ Documents -> Index []
 	how? stemming etc.
 	performance
 Peroformance Analyse Reader []
-Ranking Models [Tobias] [27.11.] [done]
-	Find one Language Model
-		Reseach
 Parameter tuning []
+    Language Model: lambda
+    Idf: combinations of tf-idf variant, bm25
+    Title, fancy hit in language model
+    baysian smoothing
+    P(d) prior distribution
+    eleiminate queries based on their idf
+
 Performance Tuning
 	List interseciton etc
