@@ -32,6 +32,11 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
 case class WordInfo(docNb: Int, numOcurrence: Int, isInHeader: Boolean)
 
 /**
+  * Adds the word to the Wordinfo. Used in RankingModel
+ */
+case class ExtendedWordInfo(word: String, docNb : Int, numOccurence : Int, isInHeader : Boolean)
+
+/**
   * Information to a document
   * @param docName name of document (like it's parsed)
   * @param numWords total number of words in document
@@ -51,7 +56,7 @@ case class WordCount(docCount: Int, frequencyCount: Int)
   */
 class DocumentReader(preprocessor: WordPreprocessor){
   private val logger = new Logger("BaseReader")
-  protected val wordCounts = scala.collection.mutable.HashMap[String, WordCount]()
+  val wordCounts = scala.collection.mutable.HashMap[String, WordCount]()
   var docCount = 0
   val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
   val idToDocinfos = new scala.collection.mutable.HashMap[Int, DocInfo];
@@ -68,6 +73,7 @@ class DocumentReader(preprocessor: WordPreprocessor){
     //TODO: term-frequency over whole collection
     var docNb = 0
     for (doc <- tipster.stream.take(10000)) {
+      logger.log(s"Reading document ${docNb}", "BaseReader", 10000)
       idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
       val words = preprocessor.preprocess(doc.tokens)
       words.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>

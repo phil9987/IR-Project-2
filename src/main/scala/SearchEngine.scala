@@ -4,7 +4,7 @@ object SearchEngine{
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp)
     val ii = new DefaultInvertedIndex(dr)
-    val rm = new DefaultRankingModel(ii, wp)
+    val rm = new LanguageModel(ii, wp, dr)
     val logger = new Logger("SearchEngine")
 
     rm.query("the cat jumps asdf elephant".split(' ').toList)
