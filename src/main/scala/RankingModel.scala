@@ -23,7 +23,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
   * This is a dummy ranking model. It shows how to imeplement other ranking models. Do not use.
   * It preprocesses words same as the reader did, takes only words that are in the dictionary.
   * For the resulting words it looks up the relevant documents.
-  * For each document it sums up the occurences of all the query words and ranks by the sum.
+  * For each document it sums up the occurrences of all the query words and ranks by the sum.
   * @param invertedIndex Inveted Index used in the search.
   * @param preprocessor Preprocessor used in the search. Should be the same as used for creating the Reader/Index.
   */
@@ -43,9 +43,9 @@ class DefaultRankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrepro
     //load relevant docs
     val docs = words.flatMap( invertedIndex.invertedIndex(_) )
     println(docs.toString)
-    //for all the found docs sum over the number of word occurences for all words
+    //for all the found docs sum over the number of word occurrences for all words
     // and rank by the number of words
-    val rankedDocs = docs.groupBy(_.docNb).mapValues( x => x.map(_.numOcurrence).sum ).toList.sortBy(- _._2 ).take(100)
+    val rankedDocs = docs.groupBy(_.docNb).mapValues( x => x.map(_.numOccurrence).sum ).toList.sortBy(- _._2 ).take(100)
     rankedDocs.map(_._1)
   }
 }
@@ -59,7 +59,7 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
     val document = infoList(0).docNb
     val docLength = reader.idToDocinfos(document).numWords
     //TODO : Replace with real total word counts
-    infoList.map( x => lambda * x.numOccurence / docLength + (1-lambda) * (reader.wordCounts(x.word).frequencyCount )/ 1000000 ).product
+    infoList.map( x => lambda * x.numOccurrence / docLength + (1-lambda) * (reader.wordCounts(x.word).frequencyCount )/ 1000000 ).product
   }
 
   def query(query: List[String]): List[Int] = {

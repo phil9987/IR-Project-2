@@ -26,15 +26,15 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
 /**
   * Information to a document about a word
   * @param docNb - document identifier
-  * @param numOcurrence - total number of occurrences of word in document
+  * @param numOccurrence - total number of occurrences of word in document
   * @param isInHeader - occurs this word (at least once) in the header of the document?
   */
-case class WordInfo(docNb: Int, numOcurrence: Int, isInHeader: Boolean)
+case class WordInfo(docNb: Int, numOccurrence: Int, isInHeader: Boolean)
 
 /**
   * Adds the word to the Wordinfo. Used in RankingModel
  */
-case class ExtendedWordInfo(word: String, docNb : Int, numOccurence : Int, isInHeader : Boolean)
+case class ExtendedWordInfo(word: String, docNb : Int, numOccurrence : Int, isInHeader : Boolean)
 
 /**
   * Information to a document
@@ -68,7 +68,7 @@ class DocumentReader(preprocessor: WordPreprocessor){
     val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
     docCount = tipster.length
     logger.log("init: Number of files in zips = " + docCount)
-    logger.log("init: Counting word-occurences in corpus...")
+    logger.log("init: Counting word-occurrences in corpus...")
 
     //TODO: term-frequency over whole collection
     var docNb = 0

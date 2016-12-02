@@ -31,7 +31,7 @@ abstract class InvertedIndex(documentReader: DocumentReader) {
         newList
       }
 
-      queryTerms.flatMap( q => invertedIndex(q).map(wi => ExtendedWordInfo(q, wi.docNb, wi.numOcurrence, wi.isInHeader))).
+      queryTerms.flatMap( q => invertedIndex(q).map(wi => ExtendedWordInfo(q, wi.docNb, wi.numOccurrence, wi.isInHeader))).
       groupBy(_.docNb).mapValues(extend(_))
   }
 }
