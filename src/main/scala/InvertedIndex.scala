@@ -14,9 +14,11 @@ abstract class InvertedIndex(documentReader: DocumentReader) {
   val invertedIndex : Map[String, List[WordInfo]] = documentReader.postings.toMap
 
   /**
-    * given a list of query term, returns a map from docNb to the ( Word, Tf of word )
-   */
+    * given a list of query term, returns a map from docNb to the List of ExtendedInfo's
+    */
   def naiveIntersect ( queryTerms : List[String]): Map[Int, List[ExtendedWordInfo]] =  {
+      logger.log("number of documents containing each queryterm : ")
+      queryTerms.map(q=> (q, invertedIndex(q))).foreach( x=> logger.log(s" - ${x._1} : ${x._2.length} docs ") )
       def extend(infoList : List[ExtendedWordInfo]) : List[ExtendedWordInfo] =  {
         var newList = infoList
         queryTerms.foreach{
@@ -26,7 +28,7 @@ abstract class InvertedIndex(documentReader: DocumentReader) {
             }
           }
         }
-        newList
+        newList.sortBy(_.word)
       }
 
       queryTerms.flatMap( q => invertedIndex(q).map(wi => ExtendedWordInfo(q, wi.docNb, wi.numOccurrence, wi.isInHeader))).

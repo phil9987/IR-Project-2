@@ -42,7 +42,6 @@ class DefaultRankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrepro
 
     //load relevant docs
     val docs = words.flatMap( invertedIndex.invertedIndex(_) )
-    println(docs.toString)
     //for all the found docs sum over the number of word occurrences for all words
     // and rank by the number of words
     val rankedDocs = docs.groupBy(_.docNb).mapValues( x => x.map(_.numOccurrence).sum ).toList.sortBy(- _._2 ).take(100)
@@ -66,15 +65,21 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
 
     //preprocess words
     logger.log("Querying with: " + query.mkString("[", ", ", "]"))
-    val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet)
+    val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
     logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
-    val tfMap = invertedIndex.naiveIntersect(words.toList)
-    println(tfMap.take(300))
+    val tfMap = invertedIndex.naiveIntersect(words)
+    logger.log(s"total documents returned : ${tfMap.size}")
+    tfMap.foreach(x=> assert(x._2.length == words.size)) //TODO : remove this  at the end
+
     val scoresPerDoc = tfMap.mapValues(scoringFunction(_))
-    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(300)
-    println(rankedDocs.map( x=> (r.idToDocinfos(x._1).docName, x._1, x._2)))
-    rankedDocs.map(_._1)
+    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
+    logger.log("TOP 100 DOCS : ")
+    var i = 0
+    rankedDocs.foreach{ x=> i+=1; logger.log(s"TOP $i : ${r.idToDocinfos(x).docName} (${r.idToDocinfos(x).
+      numWords} tokens) => ${tfMap(x).sortBy(_.word).map(x=> s"${x.word}: ${x.numOccurrence}").mkString(",")}")}
+
+    rankedDocs
 
   }
 }
@@ -86,7 +91,7 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
 
   def normalize(v : List[Double]): List[Double] = {
     val divisor = math.sqrt(v.map(x=> x * x).sum)
-    v.map( _ / divisor)
+    v.map(  _ / divisor)
   }
 
   def multiply(x : List[Double], y : List[Double]): Double = {
@@ -104,15 +109,21 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
   def query(query: List[String]): List[Int] = {
     //preprocess words
     logger.log("Querying with: " + query.mkString("[", ", ", "]"))
-    val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet)
+    val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
     logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
-    val tfMap = invertedIndex.naiveIntersect(words.toList)
-    println(tfMap.take(300))
-    val scoresPerDoc = tfMap.mapValues(scoringFunction(_, query))
-    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100)
-    println(rankedDocs.map( x=> (r.idToDocinfos(x._1).docName, x._1, x._2)))
-    rankedDocs.map(_._1)
+    val tfMap = invertedIndex.naiveIntersect(words)
+    logger.log(s"total documents returned : ${tfMap.size}")
+    tfMap.foreach(x=> assert(x._2.length == words.size)) //TODO : remove this  at the end
 
+    val scoresPerDoc = tfMap.mapValues(scoringFunction(_, words))
+    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
+
+    logger.log("TOP 100 DOCS : ")
+    var i = 0
+    rankedDocs.foreach{ x=> i+=1; logger.log(s"TOP $i : ${r.idToDocinfos(x).docName} (${r.idToDocinfos(x).
+      numWords} tokens) => ${tfMap(x).sortBy(_.word).map(x=> s"${x.word}: ${x.numOccurrence}").mkString(",")}")}
+
+    rankedDocs.take(100)
   }
 }

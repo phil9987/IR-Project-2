@@ -57,7 +57,7 @@ class DocumentReader(preprocessor: WordPreprocessor){
   private val logger = new Logger("BaseReader")
   val wordCounts = scala.collection.mutable.HashMap[String, WordCount]()
   var docCount = 0
-  var numOfDocs = 10000
+  var numOfDocs = 35000
   val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
   val idToDocinfos = new scala.collection.mutable.HashMap[Int, DocInfo];
   var dictionary : Map[String, Int] = null
@@ -75,7 +75,7 @@ class DocumentReader(preprocessor: WordPreprocessor){
     //TODO: term-frequency over whole collection
     var docNb = 0
     for (doc <- tipster.stream.take(numOfDocs)) {
-      logger.log(s"Reading document ${docNb}", "BaseReader", 1000)
+      logger.log(s"Reading document ${docNb}", "BaseReader", 5000)
       idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
       val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
       val words = preprocessor.preprocess(doc.tokens)
