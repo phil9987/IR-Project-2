@@ -60,16 +60,15 @@ object QueryMetric {
       val TP = relevantDocs.intersect(retrievedDocsAtK)
       val FP = retrievedDocsAtK.filter( !TP.contains(_) )
       val FN = relevantDocs.filter( !TP.contains(_) )
-      precisionAtRank(k) = TP.length / (TP.length + FP.length + Double.MinPositiveValue)
-      recallAtRank(k) = TP.length / (TP.length + FN.length)
+      precisionAtRank(k) = 1.0 * TP.length / (TP.length + FP.length + Double.MinPositiveValue)
+      recallAtRank(k) = 1.0* TP.length / (TP.length + FN.length)
       F1AtRank(k) = 2*precisionAtRank(k)*recallAtRank(k)/(precisionAtRank(k)+recallAtRank(k))
     }
 
     val TP = relevantDocs.intersect(retrievedDocs)
     val FN = relevantDocs.filter( !TP.contains(_) )
-
     val AP = retrievedDocs.map(  x => if (relevantDocs.contains(x)) 1.0 else 0.0 ).zipWithIndex.map(x => (x._1,
-      precisionAtRank(x._2+1) ) ).map(x => x._1 * x._2).sum / (TP.length + FN.length)
+      precisionAtRank(x._2+1) ) ).map(x => x._1 * x._2).sum / (math.min(TP.length + FN.length,100))
 
     (precisionAtRank, recallAtRank, F1AtRank, AP)
   }

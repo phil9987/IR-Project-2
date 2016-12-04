@@ -13,10 +13,11 @@ object SearchEngine{
     var MAP = 0.0
     for(queryId <- QueryMetric.codeToQuery.keys)
       {
+        println("=====================================================")
         val query = QueryMetric.codeToQuery(queryId)
         println(query.split(' ').toList)
         val ranking = rm.query(query.split(' ').toList, queryId).map( dr.idToDocinfos(_).docName )
-        println(ranking)
+        //println(ranking)
         val metrics =  QueryMetric.eval(queryId, ranking)
         MAP = MAP + metrics._4
         println( s"Query $queryId -> precision: ${metrics._1(100)}, recall: ${metrics._2(100)} , F1: ${metrics._3(100)
