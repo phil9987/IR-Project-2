@@ -15,7 +15,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     * @param query List of query words.
     * @return A ranked List of documentIds.
     */
-  def query(query: List[String]): List[Int]
+  //def query(query: List[String]): List[Int]
 
 }
 
@@ -61,7 +61,7 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
     ).product
   }
 
-  def query(query: List[String]): List[Int] = {
+  def query(query: List[String], queryId : Int = -1 ): List[Int] = {
 
     //preprocess words
     logger.log("Querying with: " + query.mkString("[", ", ", "]"))
@@ -74,13 +74,27 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
 
     val scoresPerDoc = tfMap.mapValues(scoringFunction(_))
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
+
     logger.log("TOP 100 DOCS : ")
     var i = 0
-    rankedDocs.foreach{ x=> i+=1; logger.log(s"TOP $i : ${r.idToDocinfos(x).docName} (${r.idToDocinfos(x).
-      numWords} tokens) => ${tfMap(x).sortBy(_.word).map(x=> s"${x.word}: ${x.numOccurrence}").mkString(",")}")}
-
+    for (doc <- rankedDocs) {
+      i+= 1
+      var color = Console.RESET
+      if (queryId != -1) {
+        var judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == r.idToDocinfos(doc).docName)
+        if (judgement.length == 0) {
+          color = Console.RED
+        } else if (judgement(0)._2 == 1) {
+          color = Console.GREEN
+        }
+        else {
+          color = Console.RED
+        }
+      }
+      logger.log(s"$color TOP $i : ${r.idToDocinfos(doc).docName} (${r.idToDocinfos(doc).numWords} tokens) => ${tfMap(doc).sortBy(_.word).map(x => s"${x.word}: ${x.numOccurrence}").mkString(",")}")
+      print(Console.RESET)
+    }
     rankedDocs
-
   }
 }
 
@@ -106,7 +120,7 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     multiply(docVector, queryVector)
   }
 
-  def query(query: List[String]): List[Int] = {
+  def query(query: List[String], queryId : Int = -1 ): List[Int] = {
     //preprocess words
     logger.log("Querying with: " + query.mkString("[", ", ", "]"))
     val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
@@ -119,11 +133,27 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     val scoresPerDoc = tfMap.mapValues(scoringFunction(_, words))
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
 
+
     logger.log("TOP 100 DOCS : ")
     var i = 0
-    rankedDocs.foreach{ x=> i+=1; logger.log(s"TOP $i : ${r.idToDocinfos(x).docName} (${r.idToDocinfos(x).
-      numWords} tokens) => ${tfMap(x).sortBy(_.word).map(x=> s"${x.word}: ${x.numOccurrence}").mkString(",")}")}
+    for (doc <- rankedDocs) {
+      i+= 1
 
-    rankedDocs.take(100)
+      var color = Console.RESET
+      if (queryId != -1) {
+        var judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == r.idToDocinfos(doc).docName)
+        if (judgement.length == 0) {
+          color = Console.RED
+        } else if (judgement(0)._2 == 1) {
+          color = Console.GREEN
+        }
+        else {
+          color = Console.RED
+        }
+      }
+      logger.log(s"$color TOP $i : ${r.idToDocinfos(doc).docName} (${r.idToDocinfos(doc).numWords} tokens) => ${tfMap(doc).sortBy(_.word).map(x => s"${x.word}: ${x.numOccurrence}").mkString(",")}")
+      print(Console.RESET)
+    }
+    rankedDocs
   }
 }

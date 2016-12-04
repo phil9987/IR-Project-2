@@ -4,7 +4,7 @@ object SearchEngine{
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp)
     val ii = new DefaultInvertedIndex(dr)
-    val rm = new VectorSpaceModel(ii, wp, dr)
+    val rm = new LanguageModel(ii, wp, dr)
     val logger = new Logger("SearchEngine")
 
 
@@ -15,7 +15,7 @@ object SearchEngine{
       {
         val query = QueryMetric.codeToQuery(queryId)
         println(query.split(' ').toList)
-        val ranking = rm.query(query.split(' ').toList).map( dr.idToDocinfos(_).docName )
+        val ranking = rm.query(query.split(' ').toList, queryId).map( dr.idToDocinfos(_).docName )
         println(ranking)
         val metrics =  QueryMetric.eval(queryId, ranking)
         MAP = MAP + metrics._4
