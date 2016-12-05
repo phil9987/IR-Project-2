@@ -5,28 +5,34 @@ Implementation Refinement
     Finish Lanuage Model [Tobias]
     Tf-Idf Model [Tobias]
     Spell Occurrence (?) correctly [Philip] [02.12.16] [done]
-    Evaluation Metrics [Marc]
-    initial Benchmark [Marc]
-    make Inverted Index switchable [Marc]
-    List-intersection (low-priority) [Marc]
+    Evaluation Metrics [Marc] [5.12.16] [done?]
+
+
+
+    initial Benchmark [Marc], make Inverted Index switchable [Marc]
+    update VectorSpaceModel: remove normalization [Tobias]
+    Output Format [Marc]
+    Additional Queries [Marc]
+    Product <-> Log Sum [?]
+    Menü programmieren [Marc]
+    RankingModels tries serveral Hyperparameters [Tobias]
 
 Report [Tobias] []
-	from beginning
-	shareLatex
-Fragen: How to Score [Philip] [23.11.16] [done]
-	Scoring: documente die wir nicht kennen, sind 0-results
-		wenn andere search engines das nichtmal retrieven -> ists nicht notwendig
-Documents -> Index []
-	how? stemming etc.
-	performance
-Performance Analyse Reader []
+    Implementation [Marc]
+        Structure
+        List Intersection
+        Perforamnce Benchmark
+    Preprocessing [Philip]
+    Models [Tobias]
+    Results
+
 Parameter tuning []
-    Language Model: lambda
-    Idf: combinations of tf-idf variant, bm25
-    Title, fancy hit in language model
+    Abbrivations: verschiedene USA bezeichnungen zu U.S. [Philip]
+        USA und wichtige Query Themen
+    preprocessing: nur buchstaben [Philip]
+    Language Model: lambda [Tobias]
+    Idf: combinations of tf-idf variant, bm25 [Tobias: Framework]
+    Title, fancy hit in language model [Philip]
     baysian smoothing
     P(d) prior distribution => here use a distribution of document lengths?
-    eleiminate queries based on their idf
 
-Performance Tuning
-	List interseciton etc
