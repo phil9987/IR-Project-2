@@ -17,8 +17,8 @@ abstract class InvertedIndex(documentReader: DocumentReader) {
     * given a list of query term, returns a map from docNb to the List of ExtendedInfo's
     */
   def naiveIntersect ( queryTerms : List[String]): Map[Int, List[ExtendedWordInfo]] =  {
-      logger.log("number of documents containing each queryterm : ")
-      queryTerms.map(q=> (q, invertedIndex(q))).foreach( x=> logger.log(s" - ${x._1} : ${x._2.length} docs ") )
+      //logger.log("number of documents containing each queryterm : ")
+      //queryTerms.map(q=> (q, invertedIndex(q))).foreach( x=> logger.log(s" - ${x._1} : ${x._2.length} docs ") )
       def extend(infoList : List[ExtendedWordInfo]) : List[ExtendedWordInfo] =  {
         var newList = infoList
         queryTerms.foreach{

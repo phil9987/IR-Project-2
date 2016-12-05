@@ -45,10 +45,12 @@ object QueryMetric {
     val relevantDocs = codeToJudgement(queryId).filter(_._2 == 1).map(_._1)
     val irrelevantDocs = codeToJudgement(queryId).filter(_._2 == 0).map(_._1)
     val retrievedIrrelevant = irrelevantDocs.intersect(retrievedDocs)
+    /*
     if (retrievedIrrelevant.length > 0)
+
       logger.log("WARNING: retrieved documents that were explicitly marked as irrelevant in qrls: " +
                    retrievedIrrelevant
-        .mkString("[", ", ", "]") )
+        .mkString("[", ", ", "]") )*/
 
     val precisionAtRank = new mutable.HashMap[Int, Double]
     val recallAtRank = new mutable.HashMap[Int, Double]
