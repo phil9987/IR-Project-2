@@ -29,9 +29,9 @@ object SearchEngine{
     }
 
     if (modelType == "language"){
-      var thetaRange = List(0.55, 0.60,0.65, 7,0.75,0.8)
-      var zetaRange = List(0,100,150, 200, 250, 300)
-      var fancyHitRange = List(0,1,3,5)
+      var thetaRange = List(0.55, 0.60,0.65, 0.7,0.75,0.8)
+      var zetaRange = List(100,150, 200, 250, 300)
+      var fancyHitRange = List(0,1,3,5, 7)
       var totalCombinations = thetaRange.length * zetaRange.length * fancyHitRange.length
       var count = 0
 
