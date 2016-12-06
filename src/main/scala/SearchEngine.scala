@@ -40,14 +40,14 @@ object SearchEngine{
         for( zeta <- zetaRange ){
           for (fh <- fancyHitRange) {
             count += 1
-            logger.log(s"Testing hyperparameters... ${100 * count / totalCombinations} percent done!")
+            logger.log(s"Tuning hyperparameters... ${100 * count / totalCombinations} percent done!")
             rm.setHyperParameters(theta, zeta, fh)
             scores((theta, zeta, fh)) = evaluateModel()
           }
         }
       }
       logger.log("Best scores for each hyperparameters : ")
-      scores.toList.sortBy(- _._2).foreach{  x=> logger.log(s"(theta : ${x._1._1} , zeta ${x._1._2}, fancyHitBonus ${x._1._3}) => ${x._2}")}
+      scores.toList.sortBy(- _._2).foreach{  x=> logger.log(s"(theta ${x._1._1} , zeta ${x._1._2}, fancyHitBonus ${x._1._3}) => ${x._2}")}
 
       println("DETAILS FOR BEST HYPERPARAMETERS : ")
       val bestParams = scores.toList.sortBy(- _._2).head._1

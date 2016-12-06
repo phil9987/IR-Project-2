@@ -43,9 +43,9 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
 
     if (verbose) {
-      logger.log("TOP 100 DOCS : ")
+      logger.log("TOP 30 DOCS : ")
       var i = 0
-      for (doc <- rankedDocs) {
+      for (doc <- rankedDocs.take(30)) {
         i += 1
         var color = Console.RESET
         if (queryId != -1) {
