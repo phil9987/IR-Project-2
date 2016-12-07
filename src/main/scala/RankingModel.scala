@@ -1,12 +1,7 @@
 /**
   * Created by marc on 29/11/16.
   */
-
-
-
-abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r: DocumentReader) {
-
-
+abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r: DocumentReader){
   /**
     * Queries the model for a given list of words.
     * Implementations of this should:
@@ -20,10 +15,10 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     */
   val logger = new Logger("AbstractRankingModel")
 
-  def setHyperParameters(theta : Double, zeta : Int, fh : Double) : Unit= {
-
-
-  }  //def query(query: List[String]): List[Int]
+  def setHyperParameters(theta : Double, zeta : Int, fh : Double) : Unit= {}
+  def setHyperParameters(fh : Double) : Unit= {}
+  def setModelMode (mode : String): Unit = {}
+  //def query(query: List[String]): List[Int]
   def scoringFunction(infoList : List[ExtendedWordInfo], query : List[String]): Double = {
     return 1.0
   }
@@ -108,7 +103,7 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
 
   var lambda : Double = 0.8
   var zeta : Double = 100
-  var fancyHitBonus : Double = 1.0
+  var fancyHitBonus : Double = 0.0
 
 
   override def setHyperParameters(newLambda : Double, newZeta : Int, newFancyHitBonus : Double): Unit ={
@@ -127,21 +122,84 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
 
 class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreprocessor, r: DocumentReader) extends RankingModel(invertedIndex, preprocessor, r)
 {
-  override val logger = new Logger("VectorSpaceModel")
 
-  def normalize(v : List[Double]): List[Double] = {
-    val divisor = math.sqrt(v.map(x=> x * x).sum)
-    v.map(  _ / divisor)
+  /**
+  the mode for the model
+  first three letters : How to represent the document vector
+  last three letters : How to represent the query vector
+  a 3-letter block defines the following methods :
+      first letter : how to count the term frequency (can be n for natural, l for logarithm, b for boolean)
+      second letter : how to count the idf ( can b n for none or t for log(N/df))
+      third letter : how to normalize the vector ( n for none, c for cosine )
+   */
+  var modelMode : String = "nnn.nnn"
+  var fancyHitBonus = 0.0
+
+  override def setModelMode (mode : String): Unit = {
+    modelMode = mode
   }
 
-  def multiply(x : List[Double], y : List[Double]): Double = {
-    assert(x.length == y.length)
-    (normalize(x) zip normalize(y)).map(x => x._1 * x._2).sum
+  override def setHyperParameters(fhb : Double): Unit ={
+    fancyHitBonus = fhb
+  }
+  override val logger = new Logger("VectorSpaceModel")
+
+  def tf(info : ExtendedWordInfo, isDocument : Boolean) : Double = {
+    var occurrence = if(isDocument && info.isInHeader) info.numOccurrence + fancyHitBonus else info.numOccurrence
+    var tfMode =  if (isDocument) modelMode(0) else modelMode(4)
+    assert(tfMode == 'n' || tfMode == 'l' || tfMode == 'b')
+    if(tfMode == 'n')
+      return occurrence
+    else if (tfMode == 'l'){
+      if (occurrence == 0)
+        return 0
+      else
+        return 1 + math.log(occurrence)
+    }
+    else {
+      assert(tfMode == 'b')
+      if ( occurrence == 0)
+        return 0
+      else
+        return 1
+    }
+  }
+
+  def idf(info : ExtendedWordInfo, isDocument : Boolean) : Double = {
+    var idfMode = if (isDocument) modelMode(1) else modelMode(5)
+    assert(idfMode == 'n' || idfMode == 't' || idfMode == 'p')
+    if (idfMode == 'n')
+      return 1
+    else if (idfMode == 't'){
+      return math.log(r.numOfDocs / r.wordCounts(info.word).docCount)
+    }
+    else {
+      assert(idfMode == 'p')
+        return math.max(0, math.log( (r.numOfDocs - r.wordCounts(info.word).docCount) / r.wordCounts(info.word).docCount))
+    }
+  }
+
+  def dotProduct(doc : List[Double], query : List[Double]): Double = {
+    assert(doc.length == query.length)
+    (doc zip query).map(x => x._1 * x._2).sum
+  }
+
+  def normalize(v : List[Double], isDocument : Boolean): List[Double] = {
+    var normMode = if (isDocument) modelMode(2)  else modelMode(6)
+    assert(normMode == 'n' || normMode == 'c')
+    if (normMode == 'n' )
+      return v
+    else {
+      assert(normMode == 'c')
+      val divisor = math.sqrt(v.map(x => x * x).sum)
+      return v.map(_ / divisor)
+    }
   }
 
   override def scoringFunction(infoList : List[ExtendedWordInfo], query : List[String]): Double = {
-    val docVector = infoList.sortBy(_.word).map(x => x.numOccurrence * math.log(r.numOfDocs / r.wordCounts(x.word).docCount))
-    val queryVector = query.sorted.map(word => 1.0 )
-    multiply(docVector, queryVector)
+    val docVector = infoList.sortBy(_.word).map(info => tf(info, true) * idf(info, true))
+    val queryVector = query.sorted.map(word => ExtendedWordInfo(word, infoList(0).docNb, 1, false)).map(
+      info => tf(info, false)* idf(info, false))
+    dotProduct(normalize(docVector, true), normalize(queryVector, false))
   }
 }
