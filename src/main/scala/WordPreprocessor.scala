@@ -22,6 +22,10 @@ class WordPreprocessor {
   abbreviations.put("U.S.A", "united-states-america");
   abbreviations.put("United States of America", "united-states-america");
   abbreviations.put("America", "united-states-america");
+  abbreviations.put("ZA","south-africa")
+  abbreviations.put("MCI","multiport-communications-interface")
+
+
 
   def unifyAbbreviations(token:String) : String = {
     abbreviations.getOrElse(token,token)
