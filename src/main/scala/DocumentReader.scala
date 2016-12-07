@@ -57,7 +57,7 @@ class DocumentReader(preprocessor: WordPreprocessor){
   private val logger = new Logger("BaseReader")
   val wordCounts = scala.collection.mutable.HashMap[String, WordCount]()
   var docCount = 0
-  var numOfDocs = 100000
+  var numOfDocs = 10000
   val postings = new scala.collection.mutable.HashMap[String, List[WordInfo]].withDefaultValue(Nil)
   val idToDocinfos = new scala.collection.mutable.HashMap[Int, DocInfo];
   var dictionary : Map[String, Int] = null
