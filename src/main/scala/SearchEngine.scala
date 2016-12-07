@@ -7,6 +7,7 @@ object SearchEngine{
       return
     }
     var skipTuning = args.contains("--quick")
+    var beQuiet = args.contains("--quiet")
 
     var verbose = false
     var modelType = args(0)
@@ -23,7 +24,7 @@ object SearchEngine{
         if (verbose ) logger.log ("=====================================================")
         val query = QueryMetric.codeToQuery(queryId)
         if (verbose ) println(query.split(' ').toList)
-        val ranking = rm.query(query.split(' ').toList, queryId, verbose).map( dr.idToDocinfos(_).docName )
+        val ranking = rm.query(query.split(' ').toList, queryId, verbose&&(!beQuiet)).map( dr.idToDocinfos(_).docName )
         //println(ranking)
         val metrics =  QueryMetric.eval(queryId, ranking)
         MAP = MAP + metrics._4
