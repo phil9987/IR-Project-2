@@ -184,14 +184,14 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     (doc zip query).map(x => x._1 * x._2).sum
   }
 
-  def normalize(v : List[Double], isDocument : Boolean): List[Double] = {
+  def normalize(v : List[Double], docId : Int,  isDocument : Boolean): List[Double] = {
     var normMode = if (isDocument) modelMode(2)  else modelMode(6)
     assert(normMode == 'n' || normMode == 'c')
     if (normMode == 'n' )
       return v
     else {
       assert(normMode == 'c')
-      val divisor = math.sqrt(v.map(x => x * x).sum)
+      val divisor = if (docId == -1) math.sqrt(v.map(x => x * x).sum) else (r.idToDocinfos(docId).vectorLength)
       return v.map(_ / divisor)
     }
   }
@@ -200,6 +200,6 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     val docVector = infoList.sortBy(_.word).map(info => tf(info, true) * idf(info, true))
     val queryVector = query.sorted.map(word => ExtendedWordInfo(word, infoList(0).docNb, 1, false)).map(
       info => tf(info, false)* idf(info, false))
-    dotProduct(normalize(docVector, true), normalize(queryVector, false))
+    dotProduct(normalize(docVector, infoList(0).docNb, true), normalize(queryVector, -1,  false))
   }
 }

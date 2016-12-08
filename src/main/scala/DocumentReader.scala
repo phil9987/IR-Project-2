@@ -40,7 +40,7 @@ case class ExtendedWordInfo(word: String, docNb : Int, numOccurrence : Int, isIn
   * @param docName name of document (like it's parsed)
   * @param numWords total number of words in document
   */
-case class DocInfo(docName: String, numWords: Int)
+case class DocInfo(docName: String, numWords: Int, vectorLength : Double)
 
 /**
   * Holds the corpus-wide counts for a certain word
@@ -76,7 +76,6 @@ class DocumentReader(preprocessor: WordPreprocessor){
     var docNb = 0
     for (doc <- tipster.stream.take(numOfDocs)) {
       logger.log(s"Reading document ${docNb}", "BaseReader", 5000)
-      idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length)
       val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
       val words = preprocessor.preprocess(doc.tokens)
       words.groupBy(identity).mapValues(_.size).toList.foreach{ case (word, count) =>
@@ -85,6 +84,8 @@ class DocumentReader(preprocessor: WordPreprocessor){
           postings(word) ::= new WordInfo(docNb, count, titleWords.contains(word))
           totalNumberOfWords += count
       }
+      val docVectorLength = math.sqrt(words.groupBy(identity).mapValues(_.size).values.map(x=> x*x).sum)
+      idToDocinfos(docNb) = new DocInfo(doc.name, doc.tokens.length, docVectorLength)
       docNb += 1
     }
     logger.log(s"init: Total number of words: $totalNumberOfWords")

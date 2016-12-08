@@ -66,7 +66,7 @@ object SearchEngine{
 
     }
     else if (modelType == "tf"){
-      var bestParams = ("lpn.nnn", 7.0)
+      var bestParams = ("lpn.nnn", 10.0)
       if(!skipTuning) {
         var count = 0
         var docsModesList = List("nnn", "nnc", "ntn", "ntc", "npn", "npc",
