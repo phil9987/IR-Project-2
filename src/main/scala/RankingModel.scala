@@ -2,30 +2,36 @@
   * Created by marc on 29/11/16.
   */
 
+//TODO comment me
+case class QueryResult(rankedDocs: List[String], docToWordMap : Map[String, List[WordInDocInfo]])
 
-
-//TODO comments
+/**
+  * The RankingModel implements the core of the search engine. It retrieves the relevant documents form the inverted
+  * index and ranks them according to some metric. This class is an abstract implementation and the scoringFunction
+  * that implements the actual ranking returns 1 for all documents. Classes deriving from this class need just to
+  * reimplement the scoringFunction in order to implement custom ranking algorithms.
+  * @param invertedIndex The inverted index, from which to load data.
+  * @param preprocessor WordPreprocessor that will be applied to the queries. Should be the same that was applied to
+  *                     the documents when reading from them.
+  * @param r
+  */
+//TODO remove r
 abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r: DocumentReader){
-  /**
-    * Queries the model for a given list of words.
-    * Implementations of this should:
-    * - Use the InvertedIndex's dictionary to convert the query into a vector.
-    * - Load relevant words, and their documents from the inverted index.
-    * - Perform calculations based on the model.
-    * - Rank the documents according
-    * - Return the list of ranked documentIds
-    * @param query List of query words.
-    * @return A ranked List of documentIds.
-    */
   val logger = new Logger("AbstractRankingModel")
 
+  //TODO move to parameters
   def setHyperParameters(theta : Double, zeta : Int, fh : Double) : Unit= {}
   def setHyperParameters(fh : Double) : Unit= {}
   def setModelMode (mode : String): Unit = {}
-  //def query(query: List[String]): List[Int]
-  def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = {
-    1.0
-  }
+
+  /**
+    * Scores documents for a given Query. This determines the ranking.
+    * Abstract Implementation. Derived classes should implement a mathematical RankingModel here.
+    * @param infoList List of WordInDocInfo loaded for the query and a given document.
+    * @param query List of the query words.
+    * @return Score for the document.
+    */
+  def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = 1.0
 
   def extend(infoList : List[WordInDocInfo], queryTerms : List[String]) : List[WordInDocInfo] = {
     var newList = infoList
@@ -49,57 +55,29 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
                            .sorted )
     batchQueryQueue.clear()
     //one pass through all documents
-    println(queryWords)
-    println(queryWords.flatten.distinct)
-    val invertedIndexQueryResults = invertedIndex.getDocsForWords(queryWords.flatten.distinct).map( wi => (wi.word, wi))
-      .toMap
+    val invertedIndexQueryResults = invertedIndex.getDocsForWords(queryWords.flatten.distinct).groupBy(_.word)
     println(invertedIndexQueryResults)
-    val WordAndDocToWordMapResults = queryWords.map( words => (words, words.map(invertedIndexQueryResults(_)).groupBy(_
-                                                                                                                 .docName).mapValues(w => extend(w
-                                                                                                                .toList, words))) )
+    val WordAndDocToWordMapResults = queryWords.map( words => (words, words.flatMap(invertedIndexQueryResults(_))
+      .groupBy(_ .docName).mapValues(w => extend(w.toList, words))) )
     WordAndDocToWordMapResults.map( x => query(x._2, x._1) )
   }
 
 
-  def query(docToWordMap : Map[String, List[WordInDocInfo]], words : List[String]) : List[String] = {
-    logger.log(docToWordMap.size + "")
-    //    if (verbose) {
-    //      logger.log("TOP 30 DOCS : ")
-    //      var i = 0
-    //      for (doc <- rankedDocs.take(30)) {
-    //        i += 1
-    //        var color = Console.RESET
-    //        if (queryId != -1) {
-    //          val judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == doc)
-    //          if (judgement.isEmpty) {
-    //            color = Console.YELLOW
-    //          } else if (judgement.head._2 == 1) {
-    //            color = Console.GREEN
-    //          }
-    //          else {
-    //            color = Console.RED
-    //          }
-    //        }
-    //        logger.log(s"$color TOP $i : $doc (${r.documents(doc).tokens.length} tokens) => ${tfMap(doc).sortBy(_.word)
-    //          .map(x
-    //                                                                                                                    => s"${x.word}: ${x.numOccurrence}").mkString(",")}")
-    //        print(Console.RESET)
-    //      }
-    //    }
+  def query(docToWordMap : Map[String, List[WordInDocInfo]], words : List[String]) : QueryResult = {
 //    println( (words, docToWordMap) )
     val scoresPerDoc = docToWordMap.mapValues(scoringFunction(_, words))
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
-    rankedDocs
+    QueryResult(rankedDocs, docToWordMap)
   }
 
-    def query(queryWords: List[String], queryId : Int = -1, verbose : Boolean = false): List[String] = {
+    def query(queryWords: List[String], queryId : Int = -1, verbose : Boolean = false): QueryResult = {
     //preprocess words
     //logger.log("Querying with: " + query.mkString("[", ", ", "]"))
     val words = preprocessor.preprocess(queryWords).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
-    //logger.log("Using words: " + words.mkString("[", ", ", "]"))
+    logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
     val docToWordMap = invertedIndex.getDocsForWords(words).groupBy(_.docName).mapValues(w => extend(w.toList, words))
-      println(docToWordMap)
+//      println(docToWordMap)
     if (verbose) logger.log(s"total documents returned : ${docToWordMap.size}")
 
       docToWordMap.foreach(x=> assert(x._2.size == words.size)) //TODO : remove this  at the end
