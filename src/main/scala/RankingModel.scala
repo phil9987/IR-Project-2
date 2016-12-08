@@ -49,8 +49,11 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
                            .sorted )
     batchQueryQueue.clear()
     //one pass through all documents
+    println(queryWords)
+    println(queryWords.flatten.distinct)
     val invertedIndexQueryResults = invertedIndex.getDocsForWords(queryWords.flatten.distinct).map( wi => (wi.word, wi))
       .toMap
+    println(invertedIndexQueryResults)
     val WordAndDocToWordMapResults = queryWords.map( words => (words, words.map(invertedIndexQueryResults(_)).groupBy(_
                                                                                                                  .docName).mapValues(w => extend(w
                                                                                                                 .toList, words))) )
@@ -59,6 +62,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
 
 
   def query(docToWordMap : Map[String, List[WordInDocInfo]], words : List[String]) : List[String] = {
+    logger.log(docToWordMap.size + "")
     //    if (verbose) {
     //      logger.log("TOP 30 DOCS : ")
     //      var i = 0
@@ -82,6 +86,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     //        print(Console.RESET)
     //      }
     //    }
+//    println( (words, docToWordMap) )
     val scoresPerDoc = docToWordMap.mapValues(scoringFunction(_, words))
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
     rankedDocs
@@ -94,6 +99,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     //logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
     val docToWordMap = invertedIndex.getDocsForWords(words).groupBy(_.docName).mapValues(w => extend(w.toList, words))
+      println(docToWordMap)
     if (verbose) logger.log(s"total documents returned : ${docToWordMap.size}")
 
       docToWordMap.foreach(x=> assert(x._2.size == words.size)) //TODO : remove this  at the end

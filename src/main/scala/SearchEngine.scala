@@ -8,7 +8,7 @@ object SearchEngine{
     rm.setModelMode("lpn.nnn")
     rm.setHyperParameters(7.0)
     var MAP = 0.0
-    val keys = QueryMetric.codeToQuery.keys.toList
+    val keys = QueryMetric.codeToQuery.keys.toList.take(1)
     for(queryId <- keys)
     {
       val query = QueryMetric.codeToQuery(queryId)
@@ -29,6 +29,7 @@ object SearchEngine{
 
 
   def main(args: Array[String]): Unit ={
+//    evaluateTiming()
     val logger = new Logger("SearchEngine")
     if (args.length == 0 || ( !Set("tf","language").contains(args(0)))){
       logger.log(s"${Console.RED} Please specify a valid model as first argument (either language or tf) ${Console.RESET}")
@@ -47,7 +48,7 @@ object SearchEngine{
 
     def evaluateModel(verbose : Boolean = false): Double ={
       var MAP = 0.0
-      for(queryId <- QueryMetric.codeToQuery.keys)
+      for(queryId <- QueryMetric.codeToQuery.keys.take(1))
       {
         if (verbose ) logger.log ("=====================================================")
         val query = QueryMetric.codeToQuery(queryId)
@@ -58,7 +59,7 @@ object SearchEngine{
         MAP = MAP + metrics._4
         if(verbose) println( s"Query $queryId -> precision: ${metrics._1(100)}, recall: ${metrics._2(100)} , F1: ${metrics._3(100)}, AP: ${metrics._4}" )
       }
-      MAP = MAP / QueryMetric.codeToQuery.size
+      MAP = MAP / QueryMetric.codeToQuery.take(1).size
       if (verbose) println(s"MAP: $MAP")
       MAP
     }
