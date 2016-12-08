@@ -309,11 +309,12 @@ object SearchEngine{
         logger.log(s"${Console.RED} Please specify a valid model as first argument (either language or tf) ${Console.RESET}")
         return
       }
+      var skipTuning = args.contains("--quick")
 
       if(args(0).equals("tf"))
-        gridSearchTf()
+        gridSearchTf(skipTuning)
       else
-        gridSearchLanguage()
+        gridSearchLanguage(skipTuning)
 
     }
   }
