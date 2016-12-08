@@ -13,8 +13,8 @@ object SearchEngine{
     var modelType = args(0)
 
     val wp = new WordPreprocessor()
-    val dr = new DocumentReader(wp)
-    val ii = new DefaultInvertedIndex(dr)
+    val dr = new DocumentReader(wp, 10000)
+    val ii = new PassThroughInvertedIndex(dr)
     val rm = if (modelType == "language"){new LanguageModel(ii, wp, dr)} else {new VectorSpaceModel(ii, wp, dr)}
 
     def evaluateModel(verbose : Boolean = false): Double ={
@@ -24,7 +24,7 @@ object SearchEngine{
         if (verbose ) logger.log ("=====================================================")
         val query = QueryMetric.codeToQuery(queryId)
         if (verbose ) println(query.split(' ').toList)
-        val ranking = rm.query(query.split(' ').toList, queryId, verbose&&(!beQuiet)).map( dr.idToDocinfos(_).docName )
+        val ranking = rm.query(query.split(' ').toList, queryId, verbose&&(!beQuiet))
         //println(ranking)
         val metrics =  QueryMetric.eval(queryId, ranking)
         MAP = MAP + metrics._4

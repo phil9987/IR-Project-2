@@ -1,41 +1,41 @@
+import ch.ethz.dal.tinyir.processing.Tokenizer
+
 /**
   * Created by marc on 29/11/16.
   */
-abstract class InvertedIndex(documentReader: DocumentReader) {
-  val logger = new Logger("InvertedIndex")
+
+
+/**
+  * The inverted Index used for Document finding/ranking. Wraps around the data sturcures provides by the
+  * DocumentReader.
+  * @param documentReader DocumentReader used for creating the Inverted Index.
+  */
+class InvertedIndex(documentReader: DocumentReader) {
+  private val logger = new Logger("InvertedIndex")
+
   /**
     * Maps a word to the position in the dictionary.
     */
   val dictionary : Map[String, Int] = documentReader.dictionary
 
   /**
-    * Provides a list of DocInfos for a given word (inverted Index).
+    * Provides a list of WordInDocInfo for a given word (inverted Index).
     */
-  val invertedIndex : Map[String, List[WordInfo]] = documentReader.postings.toMap
+  private val invertedIndex : Map[String, List[WordInDocInfo]] = documentReader.invertedIndex.toMap
 
-  /**
-    * given a list of query term, returns a map from docNb to the List of ExtendedInfo's
-    */
-  def naiveIntersect ( queryTerms : List[String]): Map[Int, List[ExtendedWordInfo]] =  {
-      //logger.log("number of documents containing each queryterm : ")
-      //queryTerms.map(q=> (q, invertedIndex(q))).foreach( x=> logger.log(s" - ${x._1} : ${x._2.length} docs ") )
-      def extend(infoList : List[ExtendedWordInfo]) : List[ExtendedWordInfo] =  {
-        var newList = infoList
-        queryTerms.foreach{
-        case (term )=> {
-            if (!newList.exists{ x=> x.word == term}){
-              newList = newList :+ ExtendedWordInfo(term, newList(0).docNb, 0, false)
-            }
-          }
-        }
-        newList.sortBy(_.word)
-      }
+  def getDocsForWords(words: Iterable[String])  = words.flatMap(invertedIndex(_))
 
-      queryTerms.flatMap( q => invertedIndex(q).map(wi => ExtendedWordInfo(q, wi.docNb, wi.numOccurrence, wi.isInHeader))).
-      groupBy(_.docNb).mapValues(extend(_))
-  }
 }
 
-class DefaultInvertedIndex(documentReader: DocumentReader) extends InvertedIndex(documentReader)
+//TODO return types
+
+
+class PassThroughInvertedIndex(documentReader: DocumentReader) extends InvertedIndex(documentReader)
 {
+
+  override def getDocsForWords(words: Iterable[String])  = {
+    val wordSet = words.toSet
+    documentReader.documents.values.flatMap( documentReader.docToWords ).filter(w => wordSet.contains(w.word))
+  }
+
 }
