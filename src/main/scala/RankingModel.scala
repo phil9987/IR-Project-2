@@ -1,6 +1,10 @@
 /**
   * Created by marc on 29/11/16.
   */
+
+
+
+//TODO comments
 abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r: DocumentReader){
   /**
     * Queries the model for a given list of words.
@@ -26,54 +30,74 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
   def extend(infoList : List[WordInDocInfo], queryTerms : List[String]) : List[WordInDocInfo] = {
     var newList = infoList
     queryTerms.foreach {
-                         case (term) => {
+                         case (term) =>
                            if (!newList.exists { x => x.word == term }) {
-                             newList = newList :+ WordInDocInfo(term, newList(0).docName, 0, false)
+                             newList = newList :+ WordInDocInfo(term, newList.head.docName, 0, isInHeader = false)
                            }
-                         }
                        }
     newList.sortBy(_.word)
   }
 
 
+  val batchQueryQueue = new scala.collection.mutable.MutableList[List[String]]
+  def enqueueBatchQuery(query: List[String]) : Unit = {
+    batchQueryQueue += query
+  }
+  def performBatchQuery() = {
+    val queryWords = batchQueryQueue.map( preprocessor.preprocess(_).distinct.toSet.intersect(invertedIndex.dictionary
+                                                                                           .keySet).toList
+                           .sorted )
+    batchQueryQueue.clear()
+    //one pass through all documents
+    val invertedIndexQueryResults = invertedIndex.getDocsForWords(queryWords.flatten.distinct).map( wi => (wi.word, wi))
+      .toMap
+    val WordAndDocToWordMapResults = queryWords.map( words => (words, words.map(invertedIndexQueryResults(_)).groupBy(_
+                                                                                                                 .docName).mapValues(w => extend(w
+                                                                                                                .toList, words))) )
+    WordAndDocToWordMapResults.map( x => query(x._2, x._1) )
+  }
 
-    def query(query: List[String], queryId : Int = -1, verbose : Boolean = false): List[String] = {
+
+  def query(docToWordMap : Map[String, List[WordInDocInfo]], words : List[String]) : List[String] = {
+    //    if (verbose) {
+    //      logger.log("TOP 30 DOCS : ")
+    //      var i = 0
+    //      for (doc <- rankedDocs.take(30)) {
+    //        i += 1
+    //        var color = Console.RESET
+    //        if (queryId != -1) {
+    //          val judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == doc)
+    //          if (judgement.isEmpty) {
+    //            color = Console.YELLOW
+    //          } else if (judgement.head._2 == 1) {
+    //            color = Console.GREEN
+    //          }
+    //          else {
+    //            color = Console.RED
+    //          }
+    //        }
+    //        logger.log(s"$color TOP $i : $doc (${r.documents(doc).tokens.length} tokens) => ${tfMap(doc).sortBy(_.word)
+    //          .map(x
+    //                                                                                                                    => s"${x.word}: ${x.numOccurrence}").mkString(",")}")
+    //        print(Console.RESET)
+    //      }
+    //    }
+    val scoresPerDoc = docToWordMap.mapValues(scoringFunction(_, words))
+    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
+    rankedDocs
+  }
+
+    def query(queryWords: List[String], queryId : Int = -1, verbose : Boolean = false): List[String] = {
     //preprocess words
     //logger.log("Querying with: " + query.mkString("[", ", ", "]"))
-    val words = preprocessor.preprocess(query).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
+    val words = preprocessor.preprocess(queryWords).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
     //logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
-    val tfMap = invertedIndex.getDocsForWords(words).groupBy(_.docName).mapValues(w => extend(w.toList, words))
-    if (verbose) logger.log(s"total documents returned : ${tfMap.size}")
-    tfMap.foreach(x=> assert(x._2.size == words.size)) //TODO : remove this  at the end
+    val docToWordMap = invertedIndex.getDocsForWords(words).groupBy(_.docName).mapValues(w => extend(w.toList, words))
+    if (verbose) logger.log(s"total documents returned : ${docToWordMap.size}")
 
-    val scoresPerDoc = tfMap.mapValues(scoringFunction(_, words))
-    val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
-
-    if (verbose) {
-      logger.log("TOP 30 DOCS : ")
-      var i = 0
-      for (doc <- rankedDocs.take(30)) {
-        i += 1
-        var color = Console.RESET
-        if (queryId != -1) {
-          val judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == doc)
-          if (judgement.length == 0) {
-            color = Console.YELLOW
-          } else if (judgement(0)._2 == 1) {
-            color = Console.GREEN
-          }
-          else {
-            color = Console.RED
-          }
-        }
-        logger.log(s"$color TOP $i : $doc (${r.documents(doc).tokens.length} tokens) => ${tfMap(doc).sortBy(_.word)
-          .map(x
-                                                                                                                    => s"${x.word}: ${x.numOccurrence}").mkString(",")}")
-        print(Console.RESET)
-      }
-    }
-    rankedDocs
+      docToWordMap.foreach(x=> assert(x._2.size == words.size)) //TODO : remove this  at the end
+    query(docToWordMap, words)
   }
 
 }
@@ -95,15 +119,15 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
 
 
   override def setHyperParameters(newLambda : Double, newZeta : Int, newFancyHitBonus : Double): Unit ={
-    lambda = newLambda;
-    zeta = newZeta;
-    fancyHitBonus = newFancyHitBonus;
+    lambda = newLambda
+    zeta = newZeta
+    fancyHitBonus = newFancyHitBonus
   }
 
   override def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = {
     val docLength = r.documents(infoList.head.docName).tokens.length
     infoList.map(
-        x => math.log(lambda * ( x.numOccurrence + fancyHitBonus * toDouble(x.isInHeader)) / (docLength + zeta) + (1-lambda) * (r.wordCounts(x.word).frequencyCount )/ r.totalNumberOfWords)
+        x => math.log(lambda * ( x.numOccurrence + fancyHitBonus * toDouble(x.isInHeader)) / (docLength + zeta) + (1-lambda) * r.wordCounts(x.word).frequencyCount/ r.totalNumberOfWords)
     ).sum
   }
 }
@@ -137,19 +161,19 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     var tfMode =  if (isDocument) modelMode(0) else modelMode(4)
     assert(tfMode == 'n' || tfMode == 'l' || tfMode == 'b')
     if(tfMode == 'n')
-      return occurrence
+      occurrence
     else if (tfMode == 'l'){
       if (occurrence == 0)
-        return 0
+        0
       else
-        return 1 + math.log(occurrence)
+        1 + math.log(occurrence)
     }
     else {
       assert(tfMode == 'b')
       if ( occurrence == 0)
-        return 0
+        0
       else
-        return 1
+        1
     }
   }
 
@@ -157,13 +181,13 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     var idfMode = if (isDocument) modelMode(1) else modelMode(5)
     assert(idfMode == 'n' || idfMode == 't' || idfMode == 'p')
     if (idfMode == 'n')
-      return 1
+      1
     else if (idfMode == 't'){
-      return math.log(r.docCount / r.wordCounts(info.word).docCount)
+      math.log(r.docCount / r.wordCounts(info.word).docCount)
     }
     else {
       assert(idfMode == 'p')
-        return math.max(0, math.log( (r.docCount - r.wordCounts(info.word).docCount) / r.wordCounts(info.word).docCount))
+        math.max(0, math.log( (r.docCount - r.wordCounts(info.word).docCount) / r.wordCounts(info.word).docCount))
     }
   }
 
@@ -176,11 +200,11 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     var normMode = if (isDocument) modelMode(2)  else modelMode(6)
     assert(normMode == 'n' || normMode == 'c')
     if (normMode == 'n' )
-      return v
+      v
     else {
       assert(normMode == 'c')
       val divisor = math.sqrt(v.map(x => x * x).sum)
-      return v.map(_ / divisor)
+      v.map(_ / divisor)
     }
   }
 //TODO singature to list

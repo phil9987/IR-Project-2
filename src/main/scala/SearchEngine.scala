@@ -1,5 +1,33 @@
 object SearchEngine{
 
+  def evaluateTiming() : Unit = {
+    val wp = new WordPreprocessor()
+    val dr = new DocumentReader(wp, 10000)
+    val ii = new InvertedIndex(dr)
+    val rm = new VectorSpaceModel(ii, wp, dr)
+    rm.setModelMode("lpn.nnn")
+    rm.setHyperParameters(7.0)
+    var MAP = 0.0
+    val keys = QueryMetric.codeToQuery.keys.toList
+    for(queryId <- keys)
+    {
+      val query = QueryMetric.codeToQuery(queryId)
+      rm.enqueueBatchQuery(query.split(' ').toList)
+    }
+    val results = rm.performBatchQuery()
+    for(i <- keys.indices )
+    {
+      val ranking = results(i)
+      val queryId = keys(i)
+      val metrics =  QueryMetric.eval(queryId, ranking)
+      MAP = MAP + metrics._4
+    }
+    MAP = MAP / QueryMetric.codeToQuery.size
+    println(s"MAP: $MAP")
+  }
+
+
+
   def main(args: Array[String]): Unit ={
     val logger = new Logger("SearchEngine")
     if (args.length == 0 || ( !Set("tf","language").contains(args(0)))){
@@ -14,7 +42,7 @@ object SearchEngine{
 
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp, 10000)
-    val ii = new PassThroughInvertedIndex(dr)
+    val ii = new InvertedIndex(dr)
     val rm = if (modelType == "language"){new LanguageModel(ii, wp, dr)} else {new VectorSpaceModel(ii, wp, dr)}
 
     def evaluateModel(verbose : Boolean = false): Double ={
