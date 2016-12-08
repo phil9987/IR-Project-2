@@ -6,7 +6,7 @@ object SearchEngine{
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp, 10000)
     val ii = new InvertedIndex(dr)
-    val rm = new VectorSpaceModel(ii, wp, dr)
+    val rm = new VectorSpaceModel(ii, wp)
     rm.setModelMode("lpn.nnn")
     rm.setHyperParameters(7.0)
     var MAP = 0.0
@@ -75,7 +75,7 @@ object SearchEngine{
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp, 10000)
     val ii = new InvertedIndex(dr)
-    val rm = if (modelType == "language"){new LanguageModel(ii, wp, dr)} else {new VectorSpaceModel(ii, wp, dr)}
+    val rm = if (modelType == "language"){new LanguageModel(ii, wp)} else {new VectorSpaceModel(ii, wp)}
 
     def evaluateModel(verbose : Boolean = false): Double ={
       var MAP = 0.0
@@ -84,7 +84,7 @@ object SearchEngine{
         if (verbose ) logger.log ("=====================================================")
         val query = QueryMetric.codeToQuery(queryId)
         if (verbose ) println(query.split(' ').toList)
-        val result = rm.query(query.split(' ').toList, queryId, verbose&&(!beQuiet))
+        val result = rm.query(query.split(' ').toList)
         printQueryDetails(queryId, result, 30)
         //println(ranking)
         val metrics =  QueryMetric.eval(queryId, result.rankedDocs)

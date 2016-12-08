@@ -25,6 +25,15 @@ class InvertedIndex(documentReader: DocumentReader) {
 
   def getDocsForWords(words: Iterable[String])  = words.flatMap(invertedIndex(_))
 
+  def getDocLength(docName: String) : Int =
+    documentReader.documents(docName).tokens.length
+
+  def getTotalNumberOfWords : Int = documentReader.totalNumberOfWords
+
+  def getDocCount : Int = documentReader.docCount
+
+  def getWordCount(word :String) : WordCount = documentReader.wordCounts(word)
+
 }
 
 //TODO return types

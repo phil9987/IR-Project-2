@@ -8,15 +8,14 @@ case class QueryResult(rankedDocs: List[String], docToWordMap : Map[String, List
 /**
   * The RankingModel implements the core of the search engine. It retrieves the relevant documents form the inverted
   * index and ranks them according to some metric. This class is an abstract implementation and the scoringFunction
-  * that implements the actual ranking returns 1 for all documents. Classes deriving from this class need just to
+  * that does the actual ranking is not impelmented here. Classes deriving from this class need just to
   * reimplement the scoringFunction in order to implement custom ranking algorithms.
   * @param invertedIndex The inverted index, from which to load data.
   * @param preprocessor WordPreprocessor that will be applied to the queries. Should be the same that was applied to
   *                     the documents when reading from them.
-  * @param r
   */
 //TODO remove r
-abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r: DocumentReader){
+abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor){
   val logger = new Logger("AbstractRankingModel")
 
   //TODO move to parameters
@@ -31,8 +30,15 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     * @param query List of the query words.
     * @return Score for the document.
     */
-  def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = 1.0
+  def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double
 
+  /**
+    * Given a list of WordInDocInfo for one document and the list of query terms for one document, extends the list
+    * to also include WordInDocInfo (with nrOccurrence=0) for the words not occurring in the document.
+    * @param infoList The given list of WordInDocInfo for one document.
+    * @param queryTerms The list of query terms for a query.
+    * @return The infoList extended to also include WordInDocInfos for queryTerms that did not occur in the document.
+    */
   def extend(infoList : List[WordInDocInfo], queryTerms : List[String]) : List[WordInDocInfo] = {
     var newList = infoList
     queryTerms.foreach {
@@ -44,50 +50,86 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     newList.sortBy(_.word)
   }
 
-
-  val batchQueryQueue = new scala.collection.mutable.MutableList[List[String]]
-  def enqueueBatchQuery(query: List[String]) : Unit = {
-    batchQueryQueue += query
-  }
-  def performBatchQuery() = {
-    val queryWords = batchQueryQueue.map( preprocessor.preprocess(_).distinct.toSet.intersect(invertedIndex.dictionary
-                                                                                           .keySet).toList
-                           .sorted )
-    batchQueryQueue.clear()
-    //one pass through all documents
-    val invertedIndexQueryResults = invertedIndex.getDocsForWords(queryWords.flatten.distinct).groupBy(_.word)
-    println(invertedIndexQueryResults)
-    val WordAndDocToWordMapResults = queryWords.map( words => (words, words.flatMap(invertedIndexQueryResults(_))
-      .groupBy(_ .docName).mapValues(w => extend(w.toList, words))) )
-    WordAndDocToWordMapResults.map( x => query(x._2, x._1) )
-  }
-
-
+  /**
+    * Given a preprocessed query (words) and a docName to WordInDocInfos Map performs the actual ranking and returns
+    * the result.
+    * @param docToWordMap A map containing a key for all relevant documents and for each key a list of WordInDocInfo
+    *                     for all query terms.
+    * @param words The processed query terms.
+    * @return A QueryResult containing the ranked documents and the docToWordMap.
+    */
   def query(docToWordMap : Map[String, List[WordInDocInfo]], words : List[String]) : QueryResult = {
-//    println( (words, docToWordMap) )
     val scoresPerDoc = docToWordMap.mapValues(scoringFunction(_, words))
     val rankedDocs = scoresPerDoc.toList.sortBy( - _._2 ).take(100).map(_._1)
     QueryResult(rankedDocs, docToWordMap)
   }
 
-    def query(queryWords: List[String], queryId : Int = -1, verbose : Boolean = false): QueryResult = {
-    //preprocess words
+
+  /**
+    * Given a query, preprocess it load the WordInDocInfos and call query(docToWordMap, words) where words are the
+    * preprocessed query.
+    * This funktion returns after the query and presents a result.
+    * @param queryWords The query words.
+    * @return A QueryResult.
+    */
+  def query(queryWords: List[String]): QueryResult = {
+    //preprocess the query
     //logger.log("Querying with: " + query.mkString("[", ", ", "]"))
     val words = preprocessor.preprocess(queryWords).distinct.toSet.intersect(invertedIndex.dictionary.keySet).toList.sorted
     logger.log("Using words: " + words.mkString("[", ", ", "]"))
 
+    //load information of word occurrences form inverted index
     val docToWordMap = invertedIndex.getDocsForWords(words).groupBy(_.docName).mapValues(w => extend(w.toList, words))
-//      println(docToWordMap)
-    if (verbose) logger.log(s"total documents returned : ${docToWordMap.size}")
+    logger.log(s"total documents returned : ${docToWordMap.size}")
+    docToWordMap.foreach(x=> assert(x._2.size == words.size)) //TODO : remove this  at the end
 
-      docToWordMap.foreach(x=> assert(x._2.size == words.size)) //TODO : remove this  at the end
+    //handle ranking and return result
     query(docToWordMap, words)
+  }
+
+  //We can also perform multiple queries in batch mode. This is relevant if not using an inverted index.
+
+  /**
+    * Stores the Queries in batch-mode.
+    */
+  protected val batchQueryQueue = new scala.collection.mutable.MutableList[List[String]]
+
+  /**
+    * Add a query to the list of queries to execute in batch mode. Returns after enqueuing. No result provided.
+    * @param query The query.
+    */
+  def enqueueBatchQuery(query: List[String]) : Unit = {
+    batchQueryQueue += query
+  }
+
+  /**
+    * Performs all currently queued queries for the batch mode. Only does one query to the inverted index, which is
+    * important when using a pass-through index (no inverted index data structure and full data scan).
+    * @return List of QueryResults in the order they were enqueued.
+    */
+  def performBatchQuery() : List[QueryResult] = {
+    //the the query terms for all queries currently queued
+    val queryWords = batchQueryQueue.map( preprocessor.preprocess(_).distinct.toSet.intersect(invertedIndex.dictionary
+                                                                                                .keySet).toList
+                                            .sorted )
+    //clear the list of queued queries
+    batchQueryQueue.clear()
+
+    //one pass through all documents
+    val invertedIndexQueryResults = invertedIndex.getDocsForWords(queryWords.flatten.distinct).groupBy(_.word)
+
+    //Create the docToWordMap for all queries
+    val WordAndDocToWordMapResults = queryWords.map( words => (words, words.flatMap(invertedIndexQueryResults(_))
+      .groupBy(_ .docName).mapValues(w => extend(w.toList, words))) )
+
+    //Perform the ranking for all queries
+    WordAndDocToWordMapResults.map( x => query(x._2, x._1) ).toList
   }
 
 }
 
 
-class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor, r : DocumentReader) extends RankingModel(invertedIndex, preprocessor, r)
+class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor) extends RankingModel(invertedIndex, preprocessor)
 {
 
   def toDouble(b : Boolean): Double ={
@@ -109,14 +151,15 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
   }
 
   override def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = {
-    val docLength = r.documents(infoList.head.docName).tokens.length
+    val docLength = invertedIndex.getDocLength(infoList.head.docName)
     infoList.map(
-        x => math.log(lambda * ( x.numOccurrence + fancyHitBonus * toDouble(x.isInHeader)) / (docLength + zeta) + (1-lambda) * r.wordCounts(x.word).frequencyCount/ r.totalNumberOfWords)
+        x => math.log(lambda * ( x.numOccurrence + fancyHitBonus * toDouble(x.isInHeader)) / (docLength + zeta) +
+                        (1-lambda) * invertedIndex.getWordCount(x.word).frequencyCount/ invertedIndex.getTotalNumberOfWords)
     ).sum
   }
 }
 
-class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreprocessor, r: DocumentReader) extends RankingModel(invertedIndex, preprocessor, r)
+class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreprocessor) extends RankingModel(invertedIndex, preprocessor)
 {
 
   /**
@@ -167,11 +210,11 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
     if (idfMode == 'n')
       1
     else if (idfMode == 't'){
-      math.log(r.docCount / r.wordCounts(info.word).docCount)
+      math.log(invertedIndex.getDocCount / invertedIndex.getWordCount(info.word).docCount)
     }
     else {
       assert(idfMode == 'p')
-        math.max(0, math.log( (r.docCount - r.wordCounts(info.word).docCount) / r.wordCounts(info.word).docCount))
+        math.max(0, math.log( (invertedIndex.getDocCount - invertedIndex.getWordCount(info.word).docCount) / invertedIndex.getWordCount(info.word).docCount))
     }
   }
 
