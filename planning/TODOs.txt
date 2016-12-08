@@ -1,7 +1,7 @@
 Implementation Refinement
     Reader: Title-Words [Philip] [02.12.16] [done]
     Stop-Word-Removal [Tobias] [02.12.16] [done]
-    InvertedIndex: Overall counts, all words [Philip] [02.12.16]
+    InvertedIndex: Overall counts, all words [Philip] [02.12.16] [done]
     Finish Lanuage Model [Tobias]
     Tf-Idf Model [Tobias]
     Spell Occurrence (?) correctly [Philip] [02.12.16] [done]
@@ -29,7 +29,7 @@ Report [Tobias] []
 Parameter tuning []
     Abbrivations: verschiedene USA bezeichnungen zu U.S. [Philip]
         USA und wichtige Query Themen
-    preprocessing: nur buchstaben [Philip]
+    preprocessing: nur buchstaben [Philip] [07.12.2016] [done]
     Language Model: lambda [Tobias]
     Idf: combinations of tf-idf variant, bm25 [Tobias: Framework]
     Title, fancy hit in language model [Philip]
