@@ -21,12 +21,11 @@ class InvertedIndex(documentReader: DocumentReader) {
   /**
     * Provides a list of WordInDocInfo for a given word (inverted Index).
     */
-  private val invertedIndex : Map[String, List[WordInDocInfo]] = documentReader.invertedIndex.toMap
 
-  def getDocsForWords(words: Iterable[String])  = words.flatMap(invertedIndex(_))
+  def getDocsForWords(words: Iterable[String])  = words.flatMap(documentReader.invertedIndex(_))
 
   def getDocLength(docName: String) : Int =
-    documentReader.documents(docName).tokens.length
+    documentReader.documentLength(docName)
 
   def getTotalNumberOfWords : Int = documentReader.totalNumberOfWords
 
@@ -39,12 +38,12 @@ class InvertedIndex(documentReader: DocumentReader) {
 //TODO return types
 
 
-class PassThroughInvertedIndex(documentReader: DocumentReader) extends InvertedIndex(documentReader)
+class PassThroughInvertedIndex(documentReader: PassThroughDocumentReader) extends InvertedIndex(documentReader)
 {
 
   override def getDocsForWords(words: Iterable[String])  = {
     val wordSet = words.toSet
-    documentReader.documents.values.flatMap( documentReader.docToWords ).filter(w => wordSet.contains(w.word))
+    documentReader.docs.flatMap( documentReader.docToWords ).filter(w => wordSet.contains(w.word))
   }
 
 }

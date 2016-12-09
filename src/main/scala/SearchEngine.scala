@@ -17,7 +17,7 @@ object SearchEngine {
     //Test: PassThrough Inverted Index + Batching
     val t1 = System.nanoTime()
     val wp = new WordPreprocessor()
-    val dr = new DocumentReader(wp)
+    val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new VectorSpaceModel(ii, wp)
@@ -46,7 +46,7 @@ object SearchEngine {
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
     val wp = new WordPreprocessor()
-    val dr = new DocumentReader(wp)
+    val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new VectorSpaceModel(ii, wp)
