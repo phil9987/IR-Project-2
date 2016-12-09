@@ -133,7 +133,7 @@ object SearchEngine {
         result.docToWordMap(doc)
           .sortBy(_.word)
           .map(x
-               => s"${x.word}: ${x.numOccurrence}").mkString(",")
+          => s"${x.word}: ${x.numOccurrence}").mkString(",")
       }")
       print(Console.RESET)
     }
@@ -168,11 +168,11 @@ object SearchEngine {
       println(s"TODO description fancy hit bonus [ double, default = $bestTfFHB ] ") //TODO write explaintion
       fancyHitBonus = scala.io.StdIn.readLine()
     } while (!(fancyHitBonus.equals("") || Try {
-                                                 fancyHitBonus.toDouble
-                                               }.isSuccess))
+      fancyHitBonus.toDouble
+    }.isSuccess))
     val fhb: Double = Try {
-                            fancyHitBonus.toDouble
-                          }.getOrElse(bestTfFHB)
+      fancyHitBonus.toDouble
+    }.getOrElse(bestTfFHB)
     ("tf", (functionTypes, fhb))
   }
 
@@ -183,31 +183,31 @@ object SearchEngine {
       println(s"TODO theta [ double, default = $bestLanguageTheta ] ") //TODO write explaintion
       thetaInput = scala.io.StdIn.readLine()
     } while (!(thetaInput.equals("") || Try {
-                                              thetaInput.toDouble
-                                            }.isSuccess))
+      thetaInput.toDouble
+    }.isSuccess))
     val theta: Double = Try {
-                              thetaInput.toDouble
-                            }.getOrElse(bestLanguageTheta)
+      thetaInput.toDouble
+    }.getOrElse(bestLanguageTheta)
     var zetaInput = ""
     do {
       println(s"TODO zeta [ int, default = $bestLanguageZeta] ") //TODO write explaintion
       zetaInput = scala.io.StdIn.readLine()
     } while (!(zetaInput.equals("") || Try {
-                                             zetaInput.toInt
-                                           }.isSuccess))
+      zetaInput.toInt
+    }.isSuccess))
     val zeta: Int = Try {
-                          zetaInput.toInt
-                        }.getOrElse(bestLanguageZeta)
+      zetaInput.toInt
+    }.getOrElse(bestLanguageZeta)
     var fhrInput = ""
     do {
       println(s"TODO fhr [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explaintion
       fhrInput = scala.io.StdIn.readLine()
     } while (!(fhrInput.equals("") || Try {
-                                            fhrInput.toDouble
-                                          }.isSuccess))
+      fhrInput.toDouble
+    }.isSuccess))
     val fhr: Double = Try {
-                            fhrInput.toDouble
-                          }.getOrElse(bestLanguageFancyHitRange)
+      fhrInput.toDouble
+    }.getOrElse(bestLanguageFancyHitRange)
     ("language", (theta, zeta, fhr))
   }
 
@@ -252,9 +252,10 @@ object SearchEngine {
 
   def evaluateModel(rm: RankingModel, verbose: Boolean = false): Double = {
     var MAP = 0.0
+    var wp = new WordPreprocessor();
     for (queryId <- QueryMetric.codeToQuery.keys) {
       if (verbose) logger.log("=====================================================")
-      val query = QueryMetric.codeToQuery(queryId)
+      val query = wp.replaceImportantAbbreviations(QueryMetric.codeToQuery(queryId))
       if (verbose) println(query.split(' ').toList)
       val result = rm.query(query.split(' ').toList)
       printQueryDetails(queryId, result, 30)
@@ -285,8 +286,8 @@ object SearchEngine {
     if (!skipTuning) {
       var count = 0
       val docsModesList = List("nnn", "nnc", "ntn", "ntc", "npn", "npc",
-                               "lnn", "lnc", "ltn", "ltc", "lpn", "lpc",
-                               "bnn", "bnc", "btn", "btc", "bpn", "bpc")
+        "lnn", "lnc", "ltn", "ltc", "lpn", "lpc",
+        "bnn", "bnc", "btn", "btc", "bpn", "bpc")
 
       val queryModesList = List("nnn")
       val fancyHitRange = List(0.0, 5.0, 7.0, 10.0, 15.0)
@@ -385,8 +386,8 @@ object SearchEngine {
         val result = rm.query(QueryReader.codeToQuery(queryId).split(' ').toList)
         val pw = new PrintWriter(new File(s"ranrking-${setupInfo._1.charAt(0)}-7.run" ))
         result.rankedDocs.zipWithIndex.foreach{ case (docname, rank) =>
-                                                pw.write(s"$queryId ${rank+1} $docname")
-                                              }
+          pw.write(s"$queryId ${rank+1} $docname")
+        }
         pw.close()
       }
       logger.log(s"wrote to ranrking-${setupInfo._1.charAt(0)}-7.run")
