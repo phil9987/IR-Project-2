@@ -15,27 +15,9 @@ import scala.collection.mutable.{HashMap => MutHashMap}
 class TipsterParsePlus(is: InputStream) extends TipsterParse(is) {
   override def title: String = read(doc.getElementsByTagName("HEAD"))
   override def content: String = title + " " + body
-  def content_unified_abbreviations: String = content.replaceAll("United States of America", "USA")
-  protected val abbreviations = collection.mutable.Map[String, String]()
-  abbreviations.put("USA", "united-states-america")
-  abbreviations.put("US", "united-states-america")
-  abbreviations.put("U.S.", "united-states-america")
-  abbreviations.put("U.S.A", "united-states-america")
-  abbreviations.put("United States of America", "united-states-america")
-  abbreviations.put("America", "united-states-america")
-  abbreviations.put("american", "united-states-america")
-  abbreviations.put("ZA","south-africa")
-  abbreviations.put("South Africa","south-africa")
-  abbreviations.put("South-Africa","south-africa")
-  abbreviations.put("South African","south-africa")
-  abbreviations.put("MCI","multiport-communications-interface")
-  abbreviations.put("Multiport Communications Interacfe","multiport-communications-interface")
-  abbreviations.put("multiport communications interacfe","multiport-communications-interface")
-  var final_content = content;
-  for ((term, abbreviation) <- abbreviations){
-    final_content = final_content.replaceAll(term, abbreviation)
-  }
-  override def tokens: List[String] = Tokenizer.tokenize(final_content)
+  protected val wp = new WordPreprocessor()
+
+  override def tokens: List[String] = Tokenizer.tokenize(wp.replaceImportantAbbreviations(content))
 }
 
 /**
@@ -94,7 +76,7 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
     * @return List of WordInDocInfos for all words in the document.
     */
   def docToWords(doc: XMLDocument): List[WordInDocInfo] = {
-    val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
+    val titleWords = preprocessor.preprocess(Tokenizer.tokenize(preprocessor.replaceImportantAbbreviations(doc.title))).distinct
     val words = preprocessor.preprocess(doc.tokens)
     words.groupBy(identity).mapValues(_.size).toList.map { case (word, count) =>
       WordInDocInfo(word, doc.name, count, titleWords.contains(word))

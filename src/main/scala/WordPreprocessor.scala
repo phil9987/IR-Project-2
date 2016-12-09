@@ -23,7 +23,6 @@ class WordPreprocessor {
   abbreviations.put("US", "united-states-america");
   abbreviations.put("U.S.", "united-states-america");
   abbreviations.put("U.S.A", "united-states-america");
-  abbreviations.put("United States of America", "united-states-america");
   abbreviations.put("America", "united-states-america");
   abbreviations.put("ZA","south-africa")
   abbreviations.put("MCI","multiport-communications-interface")
@@ -31,7 +30,8 @@ class WordPreprocessor {
 
 
   def unifyAbbreviations(token:String) : String = {
-    abbreviations.getOrElse(token,token)
+    //abbreviations.getOrElse(token,token)
+    token
   }
 
   /**
@@ -60,4 +60,27 @@ class WordPreprocessor {
     */
   def preprocess(tokens : List[String]) : List[String] =
     tokens.map(unifyAbbreviations).map(_.toLowerCase).filter(filterWords(_)).map(cachedStem)
+
+  def replaceImportantAbbreviations(text: String) : String = {
+    val abbreviations = collection.mutable.Map[String, String]()
+    abbreviations.put("USA", "united-states-america")
+    abbreviations.put("US", "united-states-america")
+    abbreviations.put("U.S.", "united-states-america")
+    abbreviations.put("U.S.A", "united-states-america")
+    abbreviations.put("United States of America", "united-states-america")
+    abbreviations.put("America", "united-states-america")
+    abbreviations.put("american", "united-states-america")
+    abbreviations.put("ZA","south-africa")
+    abbreviations.put("South Africa","south-africa")
+    abbreviations.put("South-Africa","south-africa")
+    abbreviations.put("South African","south-africa")
+    abbreviations.put("MCI","multiport-communications-interface")
+    abbreviations.put("Multiport Communications Interacfe","multiport-communications-interface")
+    abbreviations.put("multiport communications interacfe","multiport-communications-interface")
+    var final_content = text;
+    for ((term, abbreviation) <- abbreviations){
+      final_content = final_content.replaceAll(term, abbreviation)
+    }
+    final_content
+  }
 }
