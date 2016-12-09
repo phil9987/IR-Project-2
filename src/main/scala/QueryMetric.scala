@@ -39,6 +39,7 @@ object QueryMetric {
   init()
 
 
+
   def eval(queryId: Int, retrievedDocs: List[String]) : (mutable.HashMap[Int, Double], mutable.HashMap[Int, Double],
     mutable.HashMap[Int, Double], Double) =
   {
