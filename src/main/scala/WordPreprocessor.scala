@@ -15,6 +15,9 @@ class WordPreprocessor {
   // patern used in filterWords to remove words which don't contain any character
   protected val pattern = "[\\p{L}\\-]+".r.pattern
 
+
+  //todo handle lowercase
+  //todo handle replacement pattern
   protected val abbreviations = collection.mutable.Map[String, String]();
   abbreviations.put("USA", "united-states-america");
   abbreviations.put("US", "united-states-america");
