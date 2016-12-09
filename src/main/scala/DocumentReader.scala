@@ -111,9 +111,8 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
 
 class PassThroughDocumentReader(preprocessor: WordPreprocessor,
                                 maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
-  override protected val logger = new Logger("PassThroughDocumentReader")
   override def init() = {
-    logger.log("init: Initializing Stream.")
+    logger.log("init: Initializing Stream, pass through mode")
     logger.log(s"init: Number of files in zips = ${tipster.length}, reading $docCount")
 
     var docNb = 0
