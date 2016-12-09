@@ -1,4 +1,4 @@
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Paths}
 
 import scala.util.Try
@@ -383,11 +383,13 @@ object SearchEngine {
       val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
       for (queryId <- QueryReader.codeToQuery.keys) {
         val result = rm.query(QueryReader.codeToQuery(queryId).split(' ').toList)
+        val pw = new PrintWriter(new File(s"ranrking-${setupInfo._1.charAt(0)}-7.run" ))
         result.rankedDocs.zipWithIndex.foreach{ case (docname, rank) =>
-                                                println(s"$queryId ${rank+1} $docname")
+                                                pw.write(s"$queryId ${rank+1} $docname")
                                               }
-
+        pw.close()
       }
+      logger.log(s"wrote to ranrking-${setupInfo._1.charAt(0)}-7.run")
     }
 
 
