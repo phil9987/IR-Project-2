@@ -16,8 +16,11 @@ import scala.collection.mutable.{HashMap => MutHashMap}
   */
 class TipsterParsePlus(is: InputStream) extends TipsterParse(is) {
   override def title: String = read(doc.getElementsByTagName("HEAD"))
+
   override def content: String = title + " " + body
+
   def content_unified_abbreviations: String = content.replaceAll("United States of America", "USA")
+
   protected val abbreviations = collection.mutable.Map[String, String]()
   abbreviations.put("USA", "united-states-america")
   abbreviations.put("US", "united-states-america")
@@ -26,17 +29,18 @@ class TipsterParsePlus(is: InputStream) extends TipsterParse(is) {
   abbreviations.put("United States of America", "united-states-america")
   abbreviations.put("America", "united-states-america")
   abbreviations.put("american", "united-states-america")
-  abbreviations.put("ZA","south-africa")
-  abbreviations.put("South Africa","south-africa")
-  abbreviations.put("South-Africa","south-africa")
-  abbreviations.put("South African","south-africa")
-  abbreviations.put("MCI","multiport-communications-interface")
-  abbreviations.put("Multiport Communications Interacfe","multiport-communications-interface")
-  abbreviations.put("multiport communications interacfe","multiport-communications-interface")
+  abbreviations.put("ZA", "south-africa")
+  abbreviations.put("South Africa", "south-africa")
+  abbreviations.put("South-Africa", "south-africa")
+  abbreviations.put("South African", "south-africa")
+  abbreviations.put("MCI", "multiport-communications-interface")
+  abbreviations.put("Multiport Communications Interacfe", "multiport-communications-interface")
+  abbreviations.put("multiport communications interacfe", "multiport-communications-interface")
   var final_content = content;
-  for ((term, abbreviation) <- abbreviations){
+  for ((term, abbreviation) <- abbreviations) {
     final_content = final_content.replaceAll(term, abbreviation)
   }
+
   override def tokens: List[String] = Tokenizer.tokenize(final_content)
 }
 
@@ -60,7 +64,7 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
   * @param numOccurrence - total number of occurrences of word in document
   * @param isInHeader    - occurs this word (at least once) in the header of the document?
   */
-case class WordInDocInfo(word: String, docName: String, docId : Int, numOccurrence: Int, isInHeader: Boolean)
+case class WordInDocInfo(word: String, docName: String, docId: Int, numOccurrence: Int, isInHeader: Boolean)
 
 /**
   * Holds the corpus-wide counts for a certain word
@@ -94,7 +98,7 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
     * @param doc The document.
     * @return List of WordInDocInfos for all words in the document.
     */
-  def docToWords(doc: XMLDocument, docNb : Int): List[WordInDocInfo] = {
+  def docToWords(doc: XMLDocument, docNb: Int): List[WordInDocInfo] = {
     val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
     val words = preprocessor.preprocess(doc.tokens)
     words.groupBy(identity).mapValues(_.size).toList.map { case (word, count) =>
@@ -133,7 +137,7 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
 
 class PassThroughDocumentReader(preprocessor: WordPreprocessor,
                                 maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
- override val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
+  override val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
 
   override def init() = {
     logger.log("init: Initializing Stream, pass through mode")
@@ -158,38 +162,35 @@ class PassThroughDocumentReader(preprocessor: WordPreprocessor,
 class LevelDBDocumentReader(preprocessor: WordPreprocessor,
                             maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
 
-    var levelDBOptions :Options = null
-    var levelDBFileName : String = null
-    var db : DB  = null
+  var levelDBOptions: Options = null
+  var levelDBFileName: String = null
+  var db: DB = null
 
 
-    def addToInvertedIndexDB(info : WordInDocInfo) =
-    {
-      val infoList = (info.docName, info.numOccurrence, info.isInHeader) :: fromInvertedIndexDB(info.word)
-      val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
-      val oos = new ObjectOutputStream(stream)
-      oos.writeObject(infoList)
-      oos.close()
-      db.put(info.word.getBytes, stream.toByteArray)
+  def addToInvertedIndexDB(info: WordInDocInfo) = {
+    val infoList = (info.docName, info.numOccurrence, info.isInHeader) :: fromInvertedIndexDB(info.word)
+    val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val oos = new ObjectOutputStream(stream)
+    oos.writeObject(infoList)
+    oos.close()
+    db.put(info.word.getBytes, stream.toByteArray)
+  }
+
+  def fromInvertedIndexDB(word: String): List[(String, Int, Boolean)] = {
+    val res = db.get(word.getBytes)
+    if (res == null) List()
+    else {
+      val ois = new ObjectInputStream(new ByteArrayInputStream(db.get(word.getBytes)))
+      val value = ois.readObject
+      ois.close
+      value.asInstanceOf[List[(String, Int, Boolean)]]
     }
-
-    def fromInvertedIndexDB(word : String) : List[(String, Int, Boolean)] =
-    {
-      val res = db.get(word.getBytes)
-      if (res == null) List()
-      else {
-        val ois = new ObjectInputStream(new ByteArrayInputStream(db.get(word.getBytes)))
-        val value = ois.readObject
-        ois.close
-        value.asInstanceOf[List[(String, Int, Boolean)]]
-      }
-    }
+  }
 
   def writeToDB() = {
     logger.log("writing to DB")
     val batch = db.createWriteBatch()
-    for(key <- invertedIndex.keys)
-    {
+    for (key <- invertedIndex.keys) {
       val current = fromInvertedIndexDB(key)
       val newList = invertedIndex(key) ++ current
       val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -214,7 +215,7 @@ class LevelDBDocumentReader(preprocessor: WordPreprocessor,
     levelDBOptions = new Options()
     levelDBOptions.createIfMissing(true)
     levelDBFileName = s"${docCount}_DB"
-      db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+    db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
     var docNb = 0
     for (doc <- tipster.stream.take(docCount)) {
       logger.log(s"Reading document $docNb", "readingDocNr", 5000)
@@ -226,7 +227,7 @@ class LevelDBDocumentReader(preprocessor: WordPreprocessor,
         val wc = wordCounts.getOrElse(w.word, WordCount(0, 0))
         wordCounts(w.word) = WordCount(wc.docCount + 1, wc.frequencyCount + w.numOccurrence)
         invertedIndex(w.word) ::= (docNb, w.numOccurrence, w.isInHeader)
-//        addToInvertedIndexDB(w)
+                          //        addToInvertedIndexDB(w)
                         }
       docNb += 1
     }
