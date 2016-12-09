@@ -206,7 +206,7 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
   }
 
   def idf(info : WordInDocInfo, isDocument : Boolean) : Double = {
-    var idfMode = if (isDocument) modelMode(1) else modelMode(5)
+    val idfMode = if (isDocument) modelMode(1) else modelMode(5)
     assert(idfMode == 'n' || idfMode == 't' || idfMode == 'p')
     if (idfMode == 'n')
       1
