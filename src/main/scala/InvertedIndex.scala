@@ -24,7 +24,11 @@ class InvertedIndex(documentReader: DocumentReader) {
     */
 
   def getDocsForWords(words: Iterable[String]) = words.flatMap(w => documentReader.invertedIndex(w).map(t =>
-                                                                                                          WordInDocInfo(w, documentReader.documentInfo(t._1)._2, t._1, t._2, t
+                                                                                                          WordInDocInfo(w, documentReader
+                                                                                                            .documentInfo(t
+                                                                                                                            ._1)
+                                                                                                            ._2, t._1, t
+                                                                                                                          ._2, t
                                                                                                                           ._3)))
 
   def getDocLength(docId: Int): Int =
@@ -40,12 +44,17 @@ class InvertedIndex(documentReader: DocumentReader) {
 
 //TODO return types
 
-//
-//class PassThroughInvertedIndex(documentReader: PassThroughDocumentReader) extends InvertedIndex(documentReader) {
-//
-//  override def getDocsForWords(words: Iterable[String]) = {
-//    val wordSet = words.toSet
-//    documentReader.docs.flatMap(documentReader.docToWords).filter(w => wordSet.contains(w.word))
-//  }
-//
-//}
+
+class PassThroughInvertedIndex(documentReader: PassThroughDocumentReader) extends InvertedIndex(documentReader) {
+
+  override def getDocsForWords(words: Iterable[String]) = {
+    val wordSet = words.toSet
+    documentReader.tipster.stream.take(documentReader.docCount).zipWithIndex.flatMap(x => documentReader.docToWords(x
+                                                                                                                      ._1, x
+                                                                                                                      ._2))
+      .filter(w
+              => wordSet
+          .contains(w.word))
+  }
+
+}
