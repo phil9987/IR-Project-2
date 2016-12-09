@@ -12,103 +12,103 @@ object SearchEngine {
   val bestLanguageTheta = .55
   val bestLanguageZeta = 150
   val bestLanguageFancyHitRange = 3.0
-
-  def evaluatePassThroughBatching() = {
-    //Test: PassThrough Inverted Index + Batching
-    val t1 = System.nanoTime()
-    val wp = new WordPreprocessor()
-    val dr = new PassThroughDocumentReader(wp)
-    val ii = new PassThroughInvertedIndex(dr)
-    val t2 = System.nanoTime()
-    val rm = new VectorSpaceModel(ii, wp)
-    rm.setModelMode(bestTfFunctionString)
-    rm.setHyperParameters(bestTfFHB)
-    var MAP = 0.0
-    val keys = QueryMetric.codeToQuery.keys.toList
-    for (queryId <- keys) {
-      val query = QueryMetric.codeToQuery(queryId)
-      rm.enqueueBatchQuery(query.split(' ').toList)
-    }
-    val results = rm.performBatchQuery()
-    for (i <- keys.indices) {
-      val ranking = results(i).rankedDocs
-      val queryId = keys(i)
-      val metrics = QueryMetric.eval(queryId, ranking)
-      MAP = MAP + metrics._4
-    }
-    val t3 = System.nanoTime()
-    MAP = MAP / QueryMetric.codeToQuery.size
-    (t2 - t1, t3 - t2, MAP)
-  }
-
-  def evaluatePassThrough() = {
-    //Test: PassThrough Inverted Index
-    val queryTimes = new collection.mutable.HashMap[Int, Long]
-    val t1 = System.nanoTime()
-    val wp = new WordPreprocessor()
-    val dr = new PassThroughDocumentReader(wp)
-    val ii = new PassThroughInvertedIndex(dr)
-    val t2 = System.nanoTime()
-    val rm = new VectorSpaceModel(ii, wp)
-    rm.setModelMode(bestTfFunctionString)
-    rm.setHyperParameters(bestTfFHB)
-    var MAP = 0.0
-    val keys = QueryMetric.codeToQuery.keys.toList
-    for (queryId <- keys) {
-      val query = QueryMetric.codeToQuery(queryId)
-      val tq1 = System.nanoTime()
-      val result = rm.query(query.split(' ').toList)
-      val tq2 = System.nanoTime()
-      queryTimes(queryId) = tq2 - tq1
-      val metrics = QueryMetric.eval(queryId, result.rankedDocs)
-      MAP = MAP + metrics._4
-    }
-    val t3 = System.nanoTime()
-    MAP = MAP / QueryMetric.codeToQuery.size
-    (t2 - t1, t3 - t2, MAP, queryTimes)
-  }
-
-  def evaluateInvertedIndex() = {
-    //Test: PassThrough Inverted Index
-    val queryTimes = new collection.mutable.HashMap[Int, Long]
-    val t1 = System.nanoTime()
-    val wp = new WordPreprocessor()
-    val dr = new DocumentReader(wp)
-    val ii = new InvertedIndex(dr)
-    val t2 = System.nanoTime()
-    val rm = new VectorSpaceModel(ii, wp)
-    rm.setModelMode(bestTfFunctionString)
-    rm.setHyperParameters(bestTfFHB)
-    var MAP = 0.0
-    val keys = QueryMetric.codeToQuery.keys.toList
-    for (queryId <- keys) {
-      val query = QueryMetric.codeToQuery(queryId)
-      val tq1 = System.nanoTime()
-      val result = rm.query(query.split(' ').toList)
-      val tq2 = System.nanoTime()
-      queryTimes(queryId) = tq2 - tq1
-      val metrics = QueryMetric.eval(queryId, result.rankedDocs)
-      MAP = MAP + metrics._4
-    }
-    val t3 = System.nanoTime()
-    MAP = MAP / QueryMetric.codeToQuery.size
-    (t2 - t1, t3 - t2, MAP, queryTimes)
-  }
-
-
-  def evaluateTiming(): Unit = {
-    logger.log("Evaluating run-time without inverted index")
-    val (ptSetup, ptQueryTime, ptMAP, ptIndividualTimes) = evaluatePassThrough()
-    logger.log("Evaluating run-time without inverted index with batching")
-    val (ptBSetup, ptBQueryTime, ptBMAP) = evaluatePassThroughBatching()
-    logger.log("Evaluating run-time with inverted index")
-    val (iiSetup, iiQueryTime, iiMAP, iiIndividualTimes) = evaluateInvertedIndex()
-
-    logger.log(s"Results")
-    logger.log(s"Without inverted Index: setup $ptSetup; query $ptQueryTime; MAP $ptMAP")
-    logger.log(s"Without inverted Index; batched: setup $ptBSetup; query $ptBQueryTime; MAP $ptBMAP")
-    logger.log(s"With inverted Index: setup $iiSetup; query $iiQueryTime; MAP $iiMAP")
-  }
+//
+//  def evaluatePassThroughBatching() = {
+//    //Test: PassThrough Inverted Index + Batching
+//    val t1 = System.nanoTime()
+//    val wp = new WordPreprocessor()
+//    val dr = new PassThroughDocumentReader(wp)
+//    val ii = new PassThroughInvertedIndex(dr)
+//    val t2 = System.nanoTime()
+//    val rm = new VectorSpaceModel(ii, wp)
+//    rm.setModelMode(bestTfFunctionString)
+//    rm.setHyperParameters(bestTfFHB)
+//    var MAP = 0.0
+//    val keys = QueryMetric.codeToQuery.keys.toList
+//    for (queryId <- keys) {
+//      val query = QueryMetric.codeToQuery(queryId)
+//      rm.enqueueBatchQuery(query.split(' ').toList)
+//    }
+//    val results = rm.performBatchQuery()
+//    for (i <- keys.indices) {
+//      val ranking = results(i).rankedDocs
+//      val queryId = keys(i)
+//      val metrics = QueryMetric.eval(queryId, ranking)
+//      MAP = MAP + metrics._4
+//    }
+//    val t3 = System.nanoTime()
+//    MAP = MAP / QueryMetric.codeToQuery.size
+//    (t2 - t1, t3 - t2, MAP)
+//  }
+//
+//  def evaluatePassThrough() = {
+//    //Test: PassThrough Inverted Index
+//    val queryTimes = new collection.mutable.HashMap[Int, Long]
+//    val t1 = System.nanoTime()
+//    val wp = new WordPreprocessor()
+//    val dr = new PassThroughDocumentReader(wp)
+//    val ii = new PassThroughInvertedIndex(dr)
+//    val t2 = System.nanoTime()
+//    val rm = new VectorSpaceModel(ii, wp)
+//    rm.setModelMode(bestTfFunctionString)
+//    rm.setHyperParameters(bestTfFHB)
+//    var MAP = 0.0
+//    val keys = QueryMetric.codeToQuery.keys.toList
+//    for (queryId <- keys) {
+//      val query = QueryMetric.codeToQuery(queryId)
+//      val tq1 = System.nanoTime()
+//      val result = rm.query(query.split(' ').toList)
+//      val tq2 = System.nanoTime()
+//      queryTimes(queryId) = tq2 - tq1
+//      val metrics = QueryMetric.eval(queryId, result.rankedDocs)
+//      MAP = MAP + metrics._4
+//    }
+//    val t3 = System.nanoTime()
+//    MAP = MAP / QueryMetric.codeToQuery.size
+//    (t2 - t1, t3 - t2, MAP, queryTimes)
+//  }
+//
+//  def evaluateInvertedIndex() = {
+//    //Test: PassThrough Inverted Index
+//    val queryTimes = new collection.mutable.HashMap[Int, Long]
+//    val t1 = System.nanoTime()
+//    val wp = new WordPreprocessor()
+//    val dr = new DocumentReader(wp)
+//    val ii = new InvertedIndex(dr)
+//    val t2 = System.nanoTime()
+//    val rm = new VectorSpaceModel(ii, wp)
+//    rm.setModelMode(bestTfFunctionString)
+//    rm.setHyperParameters(bestTfFHB)
+//    var MAP = 0.0
+//    val keys = QueryMetric.codeToQuery.keys.toList
+//    for (queryId <- keys) {
+//      val query = QueryMetric.codeToQuery(queryId)
+//      val tq1 = System.nanoTime()
+//      val result = rm.query(query.split(' ').toList)
+//      val tq2 = System.nanoTime()
+//      queryTimes(queryId) = tq2 - tq1
+//      val metrics = QueryMetric.eval(queryId, result.rankedDocs)
+//      MAP = MAP + metrics._4
+//    }
+//    val t3 = System.nanoTime()
+//    MAP = MAP / QueryMetric.codeToQuery.size
+//    (t2 - t1, t3 - t2, MAP, queryTimes)
+//  }
+//
+//
+//  def evaluateTiming(): Unit = {
+//    logger.log("Evaluating run-time without inverted index")
+//    val (ptSetup, ptQueryTime, ptMAP, ptIndividualTimes) = evaluatePassThrough()
+//    logger.log("Evaluating run-time without inverted index with batching")
+//    val (ptBSetup, ptBQueryTime, ptBMAP) = evaluatePassThroughBatching()
+//    logger.log("Evaluating run-time with inverted index")
+//    val (iiSetup, iiQueryTime, iiMAP, iiIndividualTimes) = evaluateInvertedIndex()
+//
+//    logger.log(s"Results")
+//    logger.log(s"Without inverted Index: setup $ptSetup; query $ptQueryTime; MAP $ptMAP")
+//    logger.log(s"Without inverted Index; batched: setup $ptBSetup; query $ptBQueryTime; MAP $ptBMAP")
+//    logger.log(s"With inverted Index: setup $iiSetup; query $iiQueryTime; MAP $iiMAP")
+//  }
 
 
   def printQueryDetails(queryId: Int, result: QueryResult, N: Int = 30): Unit = {
@@ -232,7 +232,7 @@ object SearchEngine {
             modelParameter: Serializable): (WordPreprocessor, DocumentReader, InvertedIndex, RankingModel)
   = {
     val wp = new WordPreprocessor()
-    val dr = new DocumentReader(wp, 10000) //TODO remove 10000
+    val dr = new DocumentReader(wp) //TODO remove 10000
     val ii = new InvertedIndex(dr)
     val rm = if (modelType == "language") {
       new LanguageModel(ii, wp)
@@ -412,7 +412,7 @@ object SearchEngine {
       i match {
         case 1 => evaluateTest()
         case 2 => evaluateTraining()
-        case 3 => evaluateTiming()
+//        case 3 => evaluateTiming()
         case 4 => gridSearch()
         case 5 => interactive()
       }

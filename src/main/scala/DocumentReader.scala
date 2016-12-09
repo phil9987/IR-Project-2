@@ -1,7 +1,9 @@
-import java.io.{File, InputStream}
+import java.io._
 
-import ch.ethz.dal.tinyir.processing.{TipsterParse, XMLDocument, Tokenizer}
+import ch.ethz.dal.tinyir.processing.{TipsterParse, Tokenizer, XMLDocument}
 import ch.ethz.dal.tinyir.io.TipsterStream
+import org.iq80.leveldb.{DB, Options}
+
 import scala.collection.mutable.{HashMap => MutHashMap}
 
 //The following two classes extend the Tipster stream and parser so that also the header of the document is tead.
@@ -38,7 +40,7 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
   * @param numOccurrence - total number of occurrences of word in document
   * @param isInHeader    - occurs this word (at least once) in the header of the document?
   */
-case class WordInDocInfo(word: String, docName: String, numOccurrence: Int, isInHeader: Boolean)
+case class WordInDocInfo(word: String, docName: String, docId : Int, numOccurrence: Int, isInHeader: Boolean)
 
 /**
   * Holds the corpus-wide counts for a certain word
@@ -60,12 +62,12 @@ case class WordCount(docCount: Int, frequencyCount: Int)
 class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
   protected val logger = new Logger("DocumentReader")
   val wordCounts = MutHashMap[String, WordCount]()
-  val invertedIndex = new MutHashMap[String, List[WordInDocInfo]].withDefaultValue(Nil)
-  val documentLength = MutHashMap[String, Int]()
+  val invertedIndex = new MutHashMap[String, List[(Int, Int, Boolean)]].withDefaultValue(Nil)
   protected val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
   val docCount = if (maxNrDocs == 0) tipster.length else math.min(maxNrDocs, tipster.length)
   val docs = tipster.stream.take(docCount)
   var totalNumberOfWords = 0
+  val documentInfo = MutHashMap[Int, (Int, String)]()
 
   /**
     * Takes the words of a document and converts them to WordInDocInfos.
@@ -73,11 +75,11 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
     * @param doc The document.
     * @return List of WordInDocInfos for all words in the document.
     */
-  def docToWords(doc: XMLDocument): List[WordInDocInfo] = {
+  def docToWords(doc: XMLDocument, docNb : Int): List[WordInDocInfo] = {
     val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
     val words = preprocessor.preprocess(doc.tokens)
     words.groupBy(identity).mapValues(_.size).toList.map { case (word, count) =>
-      WordInDocInfo(word, doc.name, count, titleWords.contains(word))
+      WordInDocInfo(word, doc.name, docNb, count, titleWords.contains(word))
                                                          }
   }
 
@@ -91,13 +93,13 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
     var docNb = 0
     for (doc <- docs) {
       logger.log(s"Reading document $docNb", "readingDocNr", 5000)
-      documentLength(doc.name) = doc.tokens.length
-      val wordInfos = docToWords(doc)
+      documentInfo(docNb) = (doc.tokens.length, doc.name)
+      val wordInfos = docToWords(doc, docNb)
       totalNumberOfWords += wordInfos.map(_.numOccurrence).sum
       wordInfos.foreach { w =>
         val wc = wordCounts.getOrElse(w.word, WordCount(0, 0))
         wordCounts(w.word) = WordCount(wc.docCount + 1, wc.frequencyCount + w.numOccurrence)
-        invertedIndex(w.word) ::= w
+        invertedIndex(w.word) ::= (docNb, w.numOccurrence, w.isInHeader)
                         }
       docNb += 1
     }
@@ -108,25 +110,107 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
   val dictionary = wordCounts.keys.toList.sorted.zipWithIndex.toMap
   logger.log(s"dictionary size: ${dictionary.size}")
 }
-
-class PassThroughDocumentReader(preprocessor: WordPreprocessor,
-                                maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
-  override def init() = {
-    logger.log("init: Initializing Stream, pass through mode")
-    logger.log(s"init: Number of files in zips = ${tipster.length}, reading $docCount")
-
-    var docNb = 0
-    for (doc <- docs) {
-      logger.log(s"Reading document $docNb", "readingDocNr", 5000)
-      documentLength(doc.name) = doc.tokens.length
-      val wordInfos = docToWords(doc)
-      totalNumberOfWords += wordInfos.map(_.numOccurrence).sum
-      wordInfos.foreach { w =>
-        val wc = wordCounts.getOrElse(w.word, WordCount(0, 0))
-        wordCounts(w.word) = WordCount(wc.docCount + 1, wc.frequencyCount + w.numOccurrence)
-                        }
-      docNb += 1
-    }
-    logger.log(s"init: Total number of words: $totalNumberOfWords")
-  }
-}
+//
+//class PassThroughDocumentReader(preprocessor: WordPreprocessor,
+//                                maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
+//  override def init() = {
+//    logger.log("init: Initializing Stream, pass through mode")
+//    logger.log(s"init: Number of files in zips = ${tipster.length}, reading $docCount")
+//
+//    var docNb = 0
+//    for (doc <- docs) {
+//      logger.log(s"Reading document $docNb", "readingDocNr", 5000)
+//      documentLength(doc.name) = doc.tokens.length
+//      val wordInfos = docToWords(doc)
+//      totalNumberOfWords += wordInfos.map(_.numOccurrence).sum
+//      wordInfos.foreach { w =>
+//        val wc = wordCounts.getOrElse(w.word, WordCount(0, 0))
+//        wordCounts(w.word) = WordCount(wc.docCount + 1, wc.frequencyCount + w.numOccurrence)
+//                        }
+//      docNb += 1
+//    }
+//    logger.log(s"init: Total number of words: $totalNumberOfWords")
+//  }
+//}
+//
+//class LevelDBDocumentReader(preprocessor: WordPreprocessor,
+//                            maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
+//
+//    var levelDBOptions :Options = null
+//    var levelDBFileName : String = null
+//    var db : DB  = null
+//
+//
+//    def addToInvertedIndexDB(info : WordInDocInfo) =
+//    {
+//      val infoList = (info.docName, info.numOccurrence, info.isInHeader) :: fromInvertedIndexDB(info.word)
+//      val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
+//      val oos = new ObjectOutputStream(stream)
+//      oos.writeObject(infoList)
+//      oos.close()
+//      db.put(info.word.getBytes, stream.toByteArray)
+//    }
+//
+//    def fromInvertedIndexDB(word : String) : List[(String, Int, Boolean)] =
+//    {
+//      val res = db.get(word.getBytes)
+//      if (res == null) List()
+//      else {
+//        val ois = new ObjectInputStream(new ByteArrayInputStream(db.get(word.getBytes)))
+//        val value = ois.readObject
+//        ois.close
+//        value.asInstanceOf[List[(String, Int, Boolean)]]
+//      }
+//    }
+//
+//  def writeToDB() = {
+//    logger.log("writing to DB")
+//    val batch = db.createWriteBatch()
+//    for(key <- invertedIndex.keys)
+//    {
+//      val current = fromInvertedIndexDB(key)
+//      val newList = invertedIndex(key) ++ current
+//      val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
+//      val oos = new ObjectOutputStream(stream)
+//      oos.writeObject(newList)
+//      oos.close()
+//      batch.put(key.getBytes, stream.toByteArray)
+//    }
+//    db.write(batch)
+//    batch.close()
+//    logger.log("done cleaning")
+//    invertedIndex.clear() //delete in-memeory inverted-index
+//    System.gc() // suggest system to garage collect now
+//  }
+//
+//  /**
+//    * Initializes the dictionary, wordCounts and invertedIndex by passing through the documents.
+//    */
+//  override protected def init() = {
+//    logger.log("init: Initializing Stream.")
+//    logger.log(s"init: Number of files in zips = ${tipster.length}, reading $docCount")
+//    levelDBOptions = new Options()
+//    levelDBOptions.createIfMissing(true)
+//    levelDBFileName = s"${docCount}_DB"
+//      db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+//    var docNb = 0
+//    for (doc <- docs) {
+//      logger.log(s"Reading document $docNb", "readingDocNr", 5000)
+//      if (docNb % 10000 == 0) writeToDB()
+//      documentLength(doc.name) = doc.tokens.length
+//      val wordInfos = docToWords(doc)
+//      totalNumberOfWords += wordInfos.map(_.numOccurrence).sum
+//      wordInfos.foreach { w =>
+//        val wc = wordCounts.getOrElse(w.word, WordCount(0, 0))
+//        wordCounts(w.word) = WordCount(wc.docCount + 1, wc.frequencyCount + w.numOccurrence)
+//        invertedIndex(w.word) ::= (w.docName, w.numOccurrence, w.isInHeader)
+////        addToInvertedIndexDB(w)
+//                        }
+//      docNb += 1
+//    }
+//    writeToDB()
+//    logger.log(s"init: Total number of words: $totalNumberOfWords")
+//  }
+//
+//
+//}

@@ -44,7 +44,8 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     queryTerms.foreach {
                          case (term) =>
                            if (!newList.exists { x => x.word == term }) {
-                             newList = newList :+ WordInDocInfo(term, newList.head.docName, 0, isInHeader = false)
+                             newList = newList :+ WordInDocInfo(term, newList.head.docName, 0, newList.head.docId,
+                               isInHeader = false)
                            }
                        }
     newList.sortBy(_.word)
@@ -151,7 +152,7 @@ class LanguageModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor
   }
 
   override def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = {
-    val docLength = invertedIndex.getDocLength(infoList.head.docName)
+    val docLength = invertedIndex.getDocLength(infoList.head.docId)
     infoList.map(
         x => math.log(lambda * ( x.numOccurrence + fancyHitBonus * toDouble(x.isInHeader)) / (docLength + zeta) +
                         (1-lambda) * invertedIndex.getWordCount(x.word).frequencyCount/ invertedIndex.getTotalNumberOfWords)
@@ -237,7 +238,9 @@ class VectorSpaceModel(invertedIndex : InvertedIndex, preprocessor : WordPreproc
 //TODO singature to list
   override def scoringFunction(infoList : Iterable[WordInDocInfo], query : List[String]): Double = {
     val docVector = infoList.toList.sortBy(_.word).map(info => tf(info, true) * idf(info, true))
-    val queryVector = query.sorted.map(word => WordInDocInfo(word, infoList.toList.head.docName, 1, false)).map(
+    val queryVector = query.sorted.map(word => WordInDocInfo(word, infoList.toList.head.docName, infoList.toList
+      .head.docId, 1, false)
+    ).map(
       info => tf(info, false)* idf(info, false))
     dotProduct(normalize(docVector, true), normalize(queryVector, false))
   }

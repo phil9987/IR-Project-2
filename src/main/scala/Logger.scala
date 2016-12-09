@@ -5,6 +5,7 @@ import java.util.Calendar
   * Created by marc on 13/11/16.
   */
 
+
 /**
   * Simple logger Class
   * @param name name of the logger
