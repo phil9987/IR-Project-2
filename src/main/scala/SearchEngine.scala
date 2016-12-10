@@ -226,13 +226,13 @@ object SearchEngine {
   def readTfSetup() = {
     var functionTypes = ""
     do {
-      println(s"TODO description [ [nlp]{r}\\.[nlp]{3}, default = $bestTfFunctionString ] ") //TODO write explaintion
+      println(s"TODO description [ [nlp]{r}\\.[nlp]{3}, default = $bestTfFunctionString ] ") //TODO write explanation
       functionTypes = scala.io.StdIn.readLine()
     } while (!(functionTypes.equals("") || functionTypes.matches("[nlp]{3}\\.[nlp]{3}")))
     if (functionTypes.equals("")) functionTypes = bestTfFunctionString
     var fancyHitBonus = ""
     do {
-      println(s"TODO description fancy hit bonus [ double, default = $bestTfFHB ] ") //TODO write explaintion
+      println(s"TODO description fancy hit bonus [ double, default = $bestTfFHB ] ") //TODO write explanation
       fancyHitBonus = scala.io.StdIn.readLine()
     } while (!(fancyHitBonus.equals("") || Try {
       fancyHitBonus.toDouble
@@ -247,7 +247,7 @@ object SearchEngine {
 
     var thetaInput = ""
     do {
-      println(s"TODO theta [ double, default = $bestLanguageTheta ] ") //TODO write explaintion
+      println(s"TODO theta [ double, default = $bestLanguageTheta ] ") //TODO write explanation
       thetaInput = scala.io.StdIn.readLine()
     } while (!(thetaInput.equals("") || Try {
       thetaInput.toDouble
@@ -257,7 +257,7 @@ object SearchEngine {
     }.getOrElse(bestLanguageTheta)
     var zetaInput = ""
     do {
-      println(s"TODO zeta [ int, default = $bestLanguageZeta] ") //TODO write explaintion
+      println(s"TODO zeta [ int, default = $bestLanguageZeta] ") //TODO write explanation
       zetaInput = scala.io.StdIn.readLine()
     } while (!(zetaInput.equals("") || Try {
       zetaInput.toInt
@@ -267,7 +267,7 @@ object SearchEngine {
     }.getOrElse(bestLanguageZeta)
     var fhrInput = ""
     do {
-      println(s"TODO fhr [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explaintion
+      println(s"TODO fhr [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explanation
       fhrInput = scala.io.StdIn.readLine()
     } while (!(fhrInput.equals("") || Try {
       fhrInput.toDouble
@@ -451,13 +451,13 @@ object SearchEngine {
       val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
       for (queryId <- QueryReader.codeToQuery.keys) {
         val result = rm.query(QueryReader.codeToQuery(queryId).split(' ').toList)
-        val pw = new PrintWriter(new File(s"ranrking-${setupInfo._1.charAt(0)}-7.run" ))
-        result.rankedDocs.zipWithIndex.foreach{ case (docname, rank) =>
-          pw.write(s"$queryId ${rank+1} $docname")
+        val pw = new PrintWriter(new File(s"ranking-${setupInfo._1.charAt(0)}-7.run" ))
+        result.rankedDocs.zipWithIndex.foreach{ case (docName, rank) =>
+          pw.write(s"$queryId ${rank+1} $docName")
         }
         pw.close()
       }
-      logger.log(s"wrote to ranrking-${setupInfo._1.charAt(0)}-7.run")
+      logger.log(s"wrote to ranking-${setupInfo._1.charAt(0)}-7.run")
     }
 
 
