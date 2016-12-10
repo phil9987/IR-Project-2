@@ -25,7 +25,7 @@ class InvertedIndex(documentReader: DocumentReader) {
 
   def getDocsForWords(words: Iterable[String])
   = words.flatMap(w =>
-                    documentReader.invertedIndex(w).map(t =>
+                    documentReader.queryInvertedIndex(w).map(t =>
                                                           WordInDocInfo(w, documentReader
                                                             .documentInfo(t._1)._2, t._1, t._2, t._3)))
 

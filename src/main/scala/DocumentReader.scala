@@ -1,4 +1,6 @@
 import java.io._
+import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
 
 import ch.ethz.dal.tinyir.processing.{TipsterParse, Tokenizer, XMLDocument}
 import ch.ethz.dal.tinyir.io.TipsterStream
@@ -67,10 +69,12 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
   protected val logger = new Logger("DocumentReader")
   val wordCounts = MutHashMap[String, WordCount]()
   val invertedIndex = new MutHashMap[String, List[(Int, Int, Boolean)]].withDefaultValue(Nil)
-  protected val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
+  val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
   val docCount = if (maxNrDocs == 0) tipster.length else math.min(maxNrDocs, tipster.length)
   var totalNumberOfWords = 0
   val documentInfo = MutHashMap[Int, (Int, String)]()
+
+  def queryInvertedIndex(word: String) = invertedIndex(word)
 
   /**
     * Takes the words of a document and converts them to WordInDocInfos.
@@ -92,7 +96,6 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
   protected def init() = {
     logger.log("init: Initializing Stream.")
     logger.log(s"init: Number of files in zips = ${tipster.length}, reading $docCount")
-
     var docNb = 0
     for (doc <- tipster.stream.take(docCount)) {
       logger.log(s"Reading document $docNb", "readingDocNr", 5000)
@@ -117,7 +120,6 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
 
 class PassThroughDocumentReader(preprocessor: WordPreprocessor,
                                 maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
- override val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
 
   override def init() = {
     logger.log("init: Initializing Stream, pass through mode")
@@ -142,14 +144,16 @@ class PassThroughDocumentReader(preprocessor: WordPreprocessor,
 class LevelDBDocumentReader(preprocessor: WordPreprocessor,
                             maxNrDocs: Int = 0) extends DocumentReader(preprocessor, maxNrDocs) {
 
-    var levelDBOptions :Options = null
-    var levelDBFileName : String = null
-    var db : DB  = null
+    var levelDBOptions :Options = _
+    var levelDBFileName : String = _
+    var db : DB = _
+
+    override def queryInvertedIndex(word: String) = fromInvertedIndexDB(word)
 
 
     def addToInvertedIndexDB(info : WordInDocInfo) =
     {
-      val infoList = (info.docName, info.numOccurrence, info.isInHeader) :: fromInvertedIndexDB(info.word)
+      val infoList = (info.docId, info.numOccurrence, info.isInHeader) :: fromInvertedIndexDB(info.word)
       val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
       val oos = new ObjectOutputStream(stream)
       oos.writeObject(infoList)
@@ -157,7 +161,7 @@ class LevelDBDocumentReader(preprocessor: WordPreprocessor,
       db.put(info.word.getBytes, stream.toByteArray)
     }
 
-    def fromInvertedIndexDB(word : String) : List[(String, Int, Boolean)] =
+    def fromInvertedIndexDB(word : String) : List[(Int, Int, Boolean)] =
     {
       val res = db.get(word.getBytes)
       if (res == null) List()
@@ -165,7 +169,7 @@ class LevelDBDocumentReader(preprocessor: WordPreprocessor,
         val ois = new ObjectInputStream(new ByteArrayInputStream(db.get(word.getBytes)))
         val value = ois.readObject
         ois.close
-        value.asInstanceOf[List[(String, Int, Boolean)]]
+        value.asInstanceOf[List[(Int, Int, Boolean)]]
       }
     }
 
@@ -198,6 +202,24 @@ class LevelDBDocumentReader(preprocessor: WordPreprocessor,
     levelDBOptions = new Options()
     levelDBOptions.createIfMissing(true)
     levelDBFileName = s"${docCount}_DB"
+    if (Files.exists(Paths.get(levelDBFileName)))
+      {
+        logger.log("found existing index DB - deleting it")
+        Files.walkFileTree(Paths.get(levelDBFileName), new SimpleFileVisitor[Path](){
+          override def visitFile(file: Path,
+                                 attrs: BasicFileAttributes): FileVisitResult = {
+            Files.delete(file)
+            FileVisitResult.CONTINUE
+          }
+
+          override def postVisitDirectory(dir: Path,
+                                          exc: IOException): FileVisitResult = {
+            Files.delete(dir)
+            FileVisitResult.CONTINUE
+          }
+        })
+      }
+
       db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
     var docNb = 0
     for (doc <- tipster.stream.take(docCount)) {
