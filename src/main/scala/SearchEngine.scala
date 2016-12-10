@@ -54,7 +54,7 @@ object SearchEngine {
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
     val wp = new WordPreprocessor()
-    val dr = new PassThroughDocumentReader(wp, 1000)
+    val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
@@ -90,7 +90,7 @@ object SearchEngine {
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
     val wp = new WordPreprocessor()
-    val dr = new DocumentReader(wp, 1000)
+    val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
@@ -127,7 +127,7 @@ object SearchEngine {
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
     val wp = new WordPreprocessor()
-    val dr = new LevelDBDocumentReader(wp, 1000)
+    val dr = new LevelDBDocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
@@ -299,7 +299,7 @@ object SearchEngine {
             modelParameter: Serializable): (WordPreprocessor, DocumentReader, InvertedIndex, RankingModel)
   = {
     val wp = new WordPreprocessor()
-    val dr = new LevelDBDocumentReader(wp, 10000) //TODO remove 10000
+    val dr = new LevelDBDocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val rm = if (modelType == "language") {
       new LanguageModel(ii, wp)
