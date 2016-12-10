@@ -8,7 +8,7 @@ object SearchEngine {
 
 
   val bestTfFunctionString = "lpn.nnn"
-  val bestTfFHB = 7.0
+  val bestTfFHB = 10.0
   val bestLanguageTheta = .75
   val bestLanguageZeta = 200
   val bestLanguageFancyHitRange = 3.0
