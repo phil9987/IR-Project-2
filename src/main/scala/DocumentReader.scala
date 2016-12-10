@@ -109,7 +109,8 @@ class DocumentReader(preprocessor: WordPreprocessor, maxNrDocs: Int = 0) {
     * @return List of WordInDocInfos for all words in the document.
     */
   def docToWords(doc: XMLDocument, docId: Int): List[WordInDocInfo] = {
-    val titleWords = preprocessor.preprocess(Tokenizer.tokenize(doc.title)).distinct
+    val titleWords = preprocessor.preprocess(Tokenizer.tokenize(
+                                              preprocessor.replaceImportantAbbreviations(doc.title))).distinct
     val words = preprocessor.preprocess(doc.tokens)
     words.groupBy(identity).mapValues(_.size).toList.map { case (word, count) =>
       WordInDocInfo(word, doc.name, docId, count, titleWords.contains(word))

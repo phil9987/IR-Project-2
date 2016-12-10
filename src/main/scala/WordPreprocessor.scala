@@ -17,23 +17,16 @@ class WordPreprocessor {
   abbreviations.put("US", "united-states-america")
   abbreviations.put("U.S.", "united-states-america")
   abbreviations.put("U.S.A", "united-states-america")
+  abbreviations.put("United States of America", "united-states-america")
   abbreviations.put("America", "united-states-america")
+  abbreviations.put("american", "united-states-america")
   abbreviations.put("ZA","south-africa")
+  abbreviations.put("South Africa","south-africa")
+  abbreviations.put("South-Africa","south-africa")
+  abbreviations.put("South African","south-africa")
   abbreviations.put("MCI","multiport-communications-interface")
-
-  /**
-    * turns every letter to lowercase, removes stopwords and words not made up from letters or '-'.
-    *
-    * @param tokens list of tokens
-    * @return preprocessed list of tokens
-    */
-  def preprocess(tokens: List[String]): List[String] =
-  tokens.map(unifyAbbreviations).map(_.toLowerCase).filter(filterWords).map(cachedStem)
-
-  def unifyAbbreviations(token:String) : String = {
-    //abbreviations.getOrElse(token,token)
-    token
-  }
+  abbreviations.put("Multiport Communications Interface","multiport-communications-interface")
+  abbreviations.put("multiport communications interface","multiport-communications-interface")
 
   /**
     * Translate a token to its stemmed base word.
@@ -54,22 +47,21 @@ class WordPreprocessor {
     */
   def filterWords(word: String) = !StopWords.stopWords.contains(word) && pattern.matcher(word).matches()
 
+  /**
+    * turns every letter to lowercase, removes stopwords and words not made up from letters or '-'.
+    * @param tokens list of tokens
+    * @return preprocessed list of tokens
+    */
+  def preprocess(tokens : List[String]) : List[String] =
+    tokens.map(_.toLowerCase).filter(filterWords(_)).map(cachedStem)
+
+
+  /**
+    * Replaces a set of terms and abbreviations
+    * @param text
+    * @return
+    */
   def replaceImportantAbbreviations(text: String) : String = {
-    val abbreviations = collection.mutable.Map[String, String]()
-    abbreviations.put("USA", "united-states-america")
-    abbreviations.put("US", "united-states-america")
-    abbreviations.put("U.S.", "united-states-america")
-    abbreviations.put("U.S.A", "united-states-america")
-    abbreviations.put("United States of America", "united-states-america")
-    abbreviations.put("America", "united-states-america")
-    abbreviations.put("american", "united-states-america")
-    abbreviations.put("ZA","south-africa")
-    abbreviations.put("South Africa","south-africa")
-    abbreviations.put("South-Africa","south-africa")
-    abbreviations.put("South African","south-africa")
-    abbreviations.put("MCI","multiport-communications-interface")
-    abbreviations.put("Multiport Communications Interacfe","multiport-communications-interface")
-    abbreviations.put("multiport communications interacfe","multiport-communications-interface")
     var final_content = text
     for ((term, abbreviation) <- abbreviations){
       final_content = final_content.replaceAll(term, abbreviation)
