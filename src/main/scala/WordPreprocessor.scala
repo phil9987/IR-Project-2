@@ -61,6 +61,11 @@ class WordPreprocessor {
   def preprocess(tokens : List[String]) : List[String] =
     tokens.map(unifyAbbreviations).map(_.toLowerCase).filter(filterWords(_)).map(cachedStem)
 
+  /**
+    * Replaces a set of terms and abbreviations
+    * @param text
+    * @return
+    */
   def replaceImportantAbbreviations(text: String) : String = {
     val abbreviations = collection.mutable.Map[String, String]()
     abbreviations.put("USA", "united-states-america")
