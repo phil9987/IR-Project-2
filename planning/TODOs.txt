@@ -21,6 +21,10 @@ Implementation Refinement
     Instruction File [Marc]
         Files
         Main Files
+    YET TO BE TAKEN ON:
+    clean up WordPreprocessor
+    check TODOs and spelling
+    comment and clean up ranking model
 
 Report [Tobias] []
     Implementation [Marc]

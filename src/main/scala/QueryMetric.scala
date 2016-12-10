@@ -1,77 +1,79 @@
-import scala.collection.mutable
-import scala.collection.mutable.MutableList
+import scala.collection.mutable.{HashMap => MutHashMap, MutableList => MutList}
 import scala.io.Source
+
 /**
-  * Created by marc on 30/11/16.
+  * Reads the training queries, their relevant judgements (qrls) and provides them to be used.
+  * Also provides methods to evaluate the results for those queries.
   */
 object QueryMetric {
-
-  //P, R, F1, AP per query as well as MAP for the entire system
-
+  /**
+    * Contains the queries. Mapping id -> query.
+    */
+  val codeToQuery = new MutHashMap[Int, String]
+  /**
+    * Contains the relevance judgments. Mapping id -> (docName, relevance).
+    */
+  val codeToJudgement = new MutHashMap[Int, MutList[(String, Int)]]
   private val logger = new Logger("QueryMetric")
-  val codeToQuery = new mutable.HashMap[Int, String]
-  val codeToJudgement = new mutable.HashMap[Int, MutableList[(String, Int)]]
 
-  def init() = {
-    logger.log("reading questions")
-    var i : Int = -1
-    for (line <- Source.fromFile("./src/main/resources/questions-descriptions.txt").getLines()) {
-      if (line.startsWith("<num>"))
-        i = Integer.parseInt(line.replaceAll("[^0-9]*", ""))
-      if (line.startsWith("<title>"))
-      {
-        val title = line.replaceAll("<title>\\s*Topic:\\s*", "").trim
-        codeToQuery(i) = title
-      }
-    }
-
-    logger.log("reading relevance judgements")
-    for (line <- Source.fromFile("./src/main/resources/relevance-judgements.csv").getLines()) {
-      val tokens = line.split(' ')
-      val id = Integer.parseInt(tokens(0))
-      val docName = tokens(2).replaceAllLiterally("-", "")
-      codeToJudgement(id)  = codeToJudgement.getOrElse(id, new MutableList[(String, Int)]) :+ ((docName,
-        Integer
-        .parseInt
-        (tokens(3)) ))
+  //parse query titles (=queries) and queryIds from the input document
+  logger.log("reading questions")
+  var i: Int = -1
+  for (line <- Source.fromFile("./src/main/resources/questions-descriptions.txt").getLines()) {
+    if (line.startsWith("<num>"))
+      i = Integer.parseInt(line.replaceAll("[^0-9]*", ""))
+    if (line.startsWith("<title>")) {
+      val title = line.replaceAll("<title>\\s*Topic:\\s*", "").trim
+      codeToQuery(i) = title
     }
   }
-  init()
+
+  //parse relevance judgements
+  logger.log("reading relevance judgements")
+  for (line <- Source.fromFile("./src/main/resources/relevance-judgements.csv").getLines()) {
+    val tokens = line.split(' ')
+    val id = Integer.parseInt(tokens(0))
+    val docName = tokens(2).replaceAllLiterally("-", "")
+    codeToJudgement(id) = codeToJudgement.getOrElse(id, new MutList[(String, Int)]) :+ ((docName, Integer
+      .parseInt(tokens(3))))
+  }
 
 
-
-  def eval(queryId: Int, retrievedDocs: List[String]) : (mutable.HashMap[Int, Double], mutable.HashMap[Int, Double],
-    mutable.HashMap[Int, Double], Double) =
-  {
+  /**
+    * Given a queryId and a ranking computes metrics (precession at rank 1-100, recall at rank 1-100, F1 at rank
+    * 1-100, average precession).
+    *
+    * @param queryId       The queryId.
+    * @param retrievedDocs The retrieved document names ordered by relevance.
+    * @return (precession at rank 1-100, recall at rank 1-100, F1 at rank 1-100, average precession)
+    */
+  def eval(queryId: Int, retrievedDocs: List[String]): (MutHashMap[Int, Double], MutHashMap[Int, Double],
+    MutHashMap[Int, Double], Double) = {
     val relevantDocs = codeToJudgement(queryId).filter(_._2 == 1).map(_._1)
-    val irrelevantDocs = codeToJudgement(queryId).filter(_._2 == 0).map(_._1)
-    val retrievedIrrelevant = irrelevantDocs.intersect(retrievedDocs)
-    /*
-    if (retrievedIrrelevant.length > 0)
+    //    val irrelevantDocs = codeToJudgement(queryId).filter(_._2 == 0).map(_._1)
+    //    val retrievedIrrelevant = irrelevantDocs.intersect(retrievedDocs)
 
-      logger.log("WARNING: retrieved documents that were explicitly marked as irrelevant in qrls: " +
-                   retrievedIrrelevant
-        .mkString("[", ", ", "]") )*/
+    val precisionAtRank = new MutHashMap[Int, Double]
+    val recallAtRank = new MutHashMap[Int, Double]
+    val F1AtRank = new MutHashMap[Int, Double]
 
-    val precisionAtRank = new mutable.HashMap[Int, Double]
-    val recallAtRank = new mutable.HashMap[Int, Double]
-    val F1AtRank = new mutable.HashMap[Int, Double]
-
-
-    for( k <- 1 to 100){
+    //also works for < 100 documents
+    //if there are less the remaining ranks will have the same information as the last rank with a document
+    for (k <- 1 to 100) {
       val retrievedDocsAtK = retrievedDocs.take(k)
       val TP = relevantDocs.intersect(retrievedDocsAtK)
-      val FP = retrievedDocsAtK.filter( !TP.contains(_) )
-      val FN = relevantDocs.filter( !TP.contains(_) )
+      val FP = retrievedDocsAtK.filter(!TP.contains(_))
+      val FN = relevantDocs.filter(!TP.contains(_))
+      //we add Double.MinPositiveValue in case the denominator is 0
       precisionAtRank(k) = 1.0 * TP.length / (TP.length + FP.length + Double.MinPositiveValue)
-      recallAtRank(k) = 1.0* TP.length / (TP.length + FN.length)
-      F1AtRank(k) = 2*precisionAtRank(k)*recallAtRank(k)/(precisionAtRank(k)+recallAtRank(k))
+      recallAtRank(k) = 1.0 * TP.length / (TP.length + FN.length)
+      F1AtRank(k) = 2 * precisionAtRank(k) * recallAtRank(k) / (precisionAtRank(k) + recallAtRank(k))
     }
 
     val TP = relevantDocs.intersect(retrievedDocs)
-    val FN = relevantDocs.filter( !TP.contains(_) )
-    val AP = retrievedDocs.map(  x => if (relevantDocs.contains(x)) 1.0 else 0.0 ).zipWithIndex.map(x => (x._1,
-      precisionAtRank(x._2+1) ) ).map(x => x._1 * x._2).sum / (math.min(TP.length + FN.length,100))
+    val FN = relevantDocs.filter(!TP.contains(_))
+    val AP = retrievedDocs.map(x => if (relevantDocs.contains(x)) 1.0 else 0.0).zipWithIndex.map(x => (x._1,
+      precisionAtRank(x._2 + 1))).map(x => x._1 * x._2).sum / math.min(TP.length + FN.length, 100)
 
     (precisionAtRank, recallAtRank, F1AtRank, AP)
   }
