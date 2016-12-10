@@ -195,7 +195,6 @@ object SearchEngine {
           color = Console.RED
         }
       }
-      //TODO (${r.documents(doc).tokens.length}
       logger.log(s"$color TOP $i : $doc  tokens) => ${
         result.docToWordMap(doc)
           .sortBy(_.word)
@@ -463,7 +462,6 @@ object SearchEngine {
 
     if (args.length == 0) {
       logger.log("Got no args, running in manual mode")
-      //TODO ensure that data is present before continuing
       println("Starting SearchEngine. What do you want to run?")
       println("=============================================================")
       println("1.) Evaluate test queries on single model for hand in")

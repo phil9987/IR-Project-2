@@ -6,17 +6,15 @@ import scala.io.Source
   * Also provides methods to evaluate the results for those queries.
   */
 object QueryMetric {
-  private val logger = new Logger("QueryMetric")
-
   /**
     * Contains the queries. Mapping id -> query.
     */
   val codeToQuery = new MutHashMap[Int, String]
-
   /**
     * Contains the relevance judgments. Mapping id -> (docName, relevance).
     */
   val codeToJudgement = new MutHashMap[Int, MutList[(String, Int)]]
+  private val logger = new Logger("QueryMetric")
 
   //parse query titles (=queries) and queryIds from the input document
   logger.log("reading questions")
@@ -59,7 +57,8 @@ object QueryMetric {
     val recallAtRank = new MutHashMap[Int, Double]
     val F1AtRank = new MutHashMap[Int, Double]
 
-    //TODO adjust if there are less than 100 documents
+    //also works for < 100 documents
+    //if there are less the remaining ranks will have the same information as the last rank with a document
     for (k <- 1 to 100) {
       val retrievedDocsAtK = retrievedDocs.take(k)
       val TP = relevantDocs.intersect(retrievedDocsAtK)
