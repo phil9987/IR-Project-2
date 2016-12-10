@@ -6,16 +6,21 @@ Implementation Refinement
     Tf-Idf Model [Tobias]
     Spell Occurrence (?) correctly [Philip] [02.12.16] [done]
     Evaluation Metrics [Marc] [5.12.16] [done?]
-
-
-
+    Output Format [Marc] [done]
+    Additional Queries [Marc] [done]
+    Menü programmieren [Marc] [done]
     initial Benchmark [Marc], make Inverted Index switchable [Marc]
-    update VectorSpaceModel: remove normalization [Tobias]
-    Output Format [Marc]
-    Additional Queries [Marc]
-    Product <-> Log Sum [?]
-    Menü programmieren [Marc]
+    Product <-> Log Sum [Tobias]
     RankingModels tries serveral Hyperparameters [Tobias]
+
+    comment Search Engine [Marc]
+    rerun Timingtest [Marc]
+    preprocessing tuning [Philip]
+    update VectorSpaceModel: remove normalization [Tobias]
+    describe meta parameters in main method
+    Instruction File [Marc]
+        Files
+        Main Files
 
 Report [Tobias] []
     Implementation [Marc]
