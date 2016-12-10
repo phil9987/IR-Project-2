@@ -452,7 +452,7 @@ object SearchEngine {
         val result = rm.query(QueryReader.codeToQuery(queryId).split(' ').toList)
         val pw = new PrintWriter(new File(s"ranking-${setupInfo._1.charAt(0)}-7.run" ))
         result.rankedDocs.zipWithIndex.foreach{ case (docName, rank) =>
-          pw.write(s"$queryId ${rank+1} $docName")
+          pw.write(s"$queryId ${rank + 1} $docName\n")
         }
         pw.close()
       }
