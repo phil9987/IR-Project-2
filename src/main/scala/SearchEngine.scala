@@ -298,7 +298,7 @@ object SearchEngine {
             modelParameter: Serializable): (WordPreprocessor, DocumentReader, InvertedIndex, RankingModel)
   = {
     val wp = new WordPreprocessor()
-    val dr = new LevelDBDocumentReader(wp)
+    val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val rm = if (modelType == "language") {
       new LanguageModel(ii, wp)
