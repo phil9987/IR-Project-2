@@ -43,6 +43,7 @@ class TipsterStreamPlus(path: String, ext: String = "") extends TipsterStream(pa
   * @param numOccurrence - total number of occurrences of word in document
   * @param isInHeader    - occurs this word (at least once) in the header of the document?
   */
+//TODO change comment
 case class WordInDocInfo(word: String, docName: String, docId : Int, numOccurrence: Int, isInHeader: Boolean)
 
 /**

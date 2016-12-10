@@ -44,7 +44,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     queryTerms.foreach {
                          case (term) =>
                            if (!newList.exists { x => x.word == term }) {
-                             newList = newList :+ WordInDocInfo(term, newList.head.docName, 0, newList.head.docId,
+                             newList = newList :+ WordInDocInfo(term, newList.head.docName, newList.head.docId, 0,
                                isInHeader = false)
                            }
                        }

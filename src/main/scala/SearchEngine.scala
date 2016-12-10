@@ -252,7 +252,7 @@ object SearchEngine {
 
   def evaluateModel(rm: RankingModel, verbose: Boolean = false): Double = {
     var MAP = 0.0
-    var wp = new WordPreprocessor();
+    var wp = new WordPreprocessor()
     for (queryId <- QueryMetric.codeToQuery.keys) {
       if (verbose) logger.log("=====================================================")
       val query = wp.replaceImportantAbbreviations(QueryMetric.codeToQuery(queryId))

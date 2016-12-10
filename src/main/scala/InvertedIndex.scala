@@ -23,13 +23,12 @@ class InvertedIndex(documentReader: DocumentReader) {
     * Provides a list of WordInDocInfo for a given word (inverted Index).
     */
 
-  def getDocsForWords(words: Iterable[String]) = words.flatMap(w => documentReader.invertedIndex(w).map(t =>
-                                                                                                          WordInDocInfo(w, documentReader
-                                                                                                            .documentInfo(t
-                                                                                                                            ._1)
-                                                                                                            ._2, t._1, t
-                                                                                                                          ._2, t
-                                                                                                                          ._3)))
+  def getDocsForWords(words: Iterable[String])
+  = words.flatMap(w =>
+                    documentReader.invertedIndex(w).map(t =>
+                                                          WordInDocInfo(w, documentReader
+                                                            .documentInfo(t._1)._2, t._1, t._2, t._3)))
+
 
   def getDocLength(docId: Int): Int =
     documentReader.documentInfo(docId)._1
