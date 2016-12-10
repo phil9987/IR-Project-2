@@ -17,9 +17,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
 
   //TODO move to parameters
   def setHyperParameters(theta: Double, zeta: Int, fh: Double): Unit = {}
-
   def setHyperParameters(fh: Double): Unit = {}
-
   def setModelMode(mode: String): Unit = {}
 
   /**
@@ -242,7 +240,7 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
   }
 
   def normalize(v: List[Double], isDocument: Boolean): List[Double] = {
-    var normMode = if (isDocument) modelMode(2) else modelMode(6)
+    val normMode = if (isDocument) modelMode(2) else modelMode(6)
     assert(normMode == 'n' || normMode == 'c')
     if (normMode == 'n')
       v

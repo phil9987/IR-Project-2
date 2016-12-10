@@ -13,25 +13,7 @@ import java.util.Calendar
 class Logger(name: String) {
 
   private val positionCounter = scala.collection.mutable.HashMap[String, Int]()
-  private val dateFormat = new SimpleDateFormat("HH:mm:ss")
-
-  /**
-    * logs the given text
-    * @param text Text to be logged.
-    */
-  def log(text: String): Unit =
-  {
-
-    val now = Calendar.getInstance.getTime
-    val sb = new StringBuilder
-    sb ++= "["
-    sb ++= dateFormat.format(now)
-    sb ++= "] ["
-    sb ++= name
-    sb ++= "] "
-    sb ++= text
-    println(sb.toString)
-  }
+  private val dateFormat: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss")
 
   /**
     * Reset a log point used in the logPoint function.
@@ -57,6 +39,24 @@ class Logger(name: String) {
     {
       positionCounter(logPointName) = (positionCounter(logPointName) + 1) % logEveryN
     }
+  }
+
+  /**
+    * logs the given text
+    *
+    * @param text Text to be logged.
+    */
+  def log(text: String): Unit = {
+
+    val now = Calendar.getInstance.getTime
+    val sb = new StringBuilder
+    sb ++= "["
+    sb ++= dateFormat.format(now)
+    sb ++= "] ["
+    sb ++= name
+    sb ++= "] "
+    sb ++= text
+    println(sb.toString)
   }
 
 }

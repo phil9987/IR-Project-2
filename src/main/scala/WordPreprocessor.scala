@@ -1,11 +1,5 @@
-import com.github.aztek.porterstemmer.PorterStemmer
 import ch.ethz.dal.tinyir.processing.StopWords
-
-import scala.collection.immutable.HashMap
-/**
-  * Created by marc on 30/11/16.
-  */
-
+import com.github.aztek.porterstemmer.PorterStemmer
 
 class WordPreprocessor {
 
@@ -27,7 +21,14 @@ class WordPreprocessor {
   abbreviations.put("ZA","south-africa")
   abbreviations.put("MCI","multiport-communications-interface")
 
-
+  /**
+    * turns every letter to lowercase, removes stopwords and words not made up from letters or '-'.
+    *
+    * @param tokens list of tokens
+    * @return preprocessed list of tokens
+    */
+  def preprocess(tokens: List[String]): List[String] =
+  tokens.map(unifyAbbreviations).map(_.toLowerCase).filter(filterWords).map(cachedStem)
 
   def unifyAbbreviations(token:String) : String = {
     //abbreviations.getOrElse(token,token)
@@ -52,14 +53,6 @@ class WordPreprocessor {
     * @return Boolean indicating whether to remove the word or not.
     */
   def filterWords(word: String) = !StopWords.stopWords.contains(word) && pattern.matcher(word).matches()
-
-  /**
-    * turns every letter to lowercase, removes stopwords and words not made up from letters or '-'.
-    * @param tokens list of tokens
-    * @return preprocessed list of tokens
-    */
-  def preprocess(tokens : List[String]) : List[String] =
-    tokens.map(unifyAbbreviations).map(_.toLowerCase).filter(filterWords).map(cachedStem)
 
   def replaceImportantAbbreviations(text: String) : String = {
     val abbreviations = collection.mutable.Map[String, String]()
