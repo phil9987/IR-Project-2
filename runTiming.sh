@@ -8,4 +8,4 @@ do
     sbt "run time iiLDB"
 done
 
-    sbt "run time pt"
+sbt "run time pt"
