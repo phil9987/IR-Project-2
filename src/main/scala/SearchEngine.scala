@@ -6,23 +6,51 @@ import scala.util.Try
 object SearchEngine {
   val logger = new Logger("SearchEngine")
 
-
+  //the best found parameters / default parameters
   val bestTfFunctionString = "lpn.nnn"
   val bestTfFHB = 7.0
   val bestLanguageTheta = .55
   val bestLanguageZeta = 150
   val bestLanguageFancyHitRange = 3.0
 
-  def evaluatePassThroughBatching() = {
-    //Test: PassThrough Inverted Index + Batching
+  //methods for running the timing tests
+
+  /**
+    * Asks the user which timing test to use and runs it.
+    */
+  def timingTest(): Unit = {
+    var timingType = ""
+    do {
+      println("Run without inverted index (pass-through) [pt], without  inverted index (pass-through) batch mode " +
+                "[ptB], with inverted index [ii], with inverted index and levelDB [iiLDB]?")
+      timingType = scala.io.StdIn.readLine()
+    } while (!(timingType.equals("pt") || timingType.equals("ptB") || timingType.equals("ii") | timingType.equals
+    ("iiLDB")))
+
+    timingType match {
+      case "pt" => timingTestPassThrough()
+      case "ptB" => timingTestPassThroughBatching()
+      case "ii" => timingTestInvertedIndex()
+      case "iiLDB" => timingTestInvertedIndexLevelDB()
+    }
+  }
+
+  /**
+    * Run experiment to get the timing in pass-through mode with batching.
+    * All queries are run in one batch and in order to answer the queries, then all files are traversed. No inverted
+    * index is used.
+    * Prints results to logger and writes them to a file.
+    * Uses Language Model with best hyperparameters.
+    */
+  def timingTestPassThroughBatching(): Unit = {
     val filename = s"ptB_${java.time.LocalDateTime.now().toString}_runTimeMeasurement.txt"
     val t1 = System.nanoTime()
     val wp = new WordPreprocessor()
-    val dr = new PassThroughDocumentReader(wp, 1000)
+    val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta,bestLanguageZeta, bestLanguageFancyHitRange)
+    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -39,8 +67,9 @@ object SearchEngine {
     val t3 = System.nanoTime()
     MAP = MAP / QueryMetric.codeToQuery.size
     val setupTime = t2 - t1
-    val queryTime = t3 -t2
-    logger.log(s"Without inverted Index, batch mode: setup $setupTime; query $queryTime; MAP $MAP")
+    val queryTime = t3 - t2
+    logger.log(s"Measured run time without inverted index in batch mode: setup $setupTime ns; query $queryTime ns; " +
+                 s"MAP $MAP")
     val pw = new PrintWriter(new File(filename))
     pw.write(s"setup\t$setupTime\n")
     pw.write(s"query\t$queryTime\n")
@@ -49,7 +78,13 @@ object SearchEngine {
 
   }
 
-  def evaluatePassThrough() = {
+  /**
+    * Run experiment to get the timing in pass-through mode.
+    * All queries are run individually, and each time all files are traversed. No inverted index is used.
+    * Prints results to logger and writes them to a file.
+    * Uses Language Model with best hyperparameters.
+    */
+  def timingTestPassThrough(): Unit = {
     val filename = s"pt_${java.time.LocalDateTime.now().toString}_runTimeMeasurement.txt"
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
@@ -58,7 +93,7 @@ object SearchEngine {
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta,bestLanguageZeta, bestLanguageFancyHitRange)
+    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -73,19 +108,26 @@ object SearchEngine {
     val t3 = System.nanoTime()
     MAP = MAP / QueryMetric.codeToQuery.size
     val setupTime = t2 - t1
-    val queryTime = t3 -t2
-    logger.log(s"Without inverted Index: setup $setupTime; query $queryTime; MAP $MAP")
+    val queryTime = t3 - t2
+    logger.log(s"Measured run time without inverted index: setup $setupTime ns; query $queryTime ns; MAP $MAP")
     val pw = new PrintWriter(new File(filename))
     pw.write(s"setup\t$setupTime\n")
     pw.write(s"query\t$queryTime\n")
     pw.write(s"MAP\t$MAP\n")
 
+    //print per query timings
     pw.write("\nquery\ttime\n")
-    queryTimes.toList.sortBy(_._1).foreach{t => pw.write(s"${t._1}\t${t._2}\n")}
+    queryTimes.toList.sortBy(_._1).foreach { t => pw.write(s"${t._1}\t${t._2}\n") }
     pw.close()
   }
 
-  def evaluateInvertedIndex() = {
+  /**
+    * Run experiment to get the timing in inverted index mode. This uses the default inverted index.
+    * All queries are run individually, and each is answered using the inverted index.
+    * Prints results to logger and writes them to a file.
+    * Uses Language Model with best hyperparameters.
+    */
+  def timingTestInvertedIndex(): Unit = {
     val filename = s"ii_${java.time.LocalDateTime.now().toString}_runTimeMeasurement.txt"
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
@@ -94,7 +136,7 @@ object SearchEngine {
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta,bestLanguageZeta, bestLanguageFancyHitRange)
+    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -109,20 +151,26 @@ object SearchEngine {
     val t3 = System.nanoTime()
     MAP = MAP / QueryMetric.codeToQuery.size
     val setupTime = t2 - t1
-    val queryTime = t3 -t2
-    logger.log(s"With inverted Index: setup $setupTime; query $queryTime; MAP $MAP")
+    val queryTime = t3 - t2
+    logger.log(s"Measured run time with inverted index: setup $setupTime ns; query $queryTime ns; MAP $MAP")
     val pw = new PrintWriter(new File(filename))
     pw.write(s"setup\t$setupTime\n")
     pw.write(s"query\t$queryTime\n")
     pw.write(s"MAP\t$MAP\n")
 
+    //print per query timings
     pw.write("\nquery\ttime\n")
-    queryTimes.toList.sortBy(_._1).foreach{t => pw.write(s"${t._1}\t${t._2}\n")}
+    queryTimes.toList.sortBy(_._1).foreach { t => pw.write(s"${t._1}\t${t._2}\n") }
     pw.close()
   }
 
-
-  def evaluateInvertedIndexLevelDB() = {
+  /**
+    * Run experiment to get the timing in inverted index mode while using level-DB to store the index.
+    * All queries are run individually, and each is answered using the inverted index.
+    * Prints results to logger and writes them to a file.
+    * Uses Language Model with best hyperparameters.
+    */
+  def timingTestInvertedIndexLevelDB(): Unit = {
     val filename = s"iiLDB_${java.time.LocalDateTime.now().toString}_runTimeMeasurement.txt"
     val queryTimes = new collection.mutable.HashMap[Int, Long]
     val t1 = System.nanoTime()
@@ -131,7 +179,7 @@ object SearchEngine {
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
     val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta,bestLanguageZeta, bestLanguageFancyHitRange)
+    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -146,38 +194,28 @@ object SearchEngine {
     val t3 = System.nanoTime()
     MAP = MAP / QueryMetric.codeToQuery.size
     val setupTime = t2 - t1
-    val queryTime = t3 -t2
-    logger.log(s"With inverted Index with levelDB: setup $setupTime; query $queryTime; MAP $MAP")
+    val queryTime = t3 - t2
+    logger.log(s"Measured run time with inverted index, stored in levelDB: setup $setupTime ns; query $queryTime ns; " +
+                 s"MAP $MAP")
     val pw = new PrintWriter(new File(filename))
     pw.write(s"setup\t$setupTime\n")
     pw.write(s"query\t$queryTime\n")
     pw.write(s"MAP\t$MAP\n")
 
+    //print per query timings
     pw.write("\nquery\ttime\n")
-    queryTimes.toList.sortBy(_._1).foreach{t => pw.write(s"${t._1}\t${t._2}\n")}
+    queryTimes.toList.sortBy(_._1).foreach { t => pw.write(s"${t._1}\t${t._2}\n") }
     pw.close()
   }
 
-  def evaluateTiming(): Unit = {
-
-    var timingType = ""
-    do {
-      println("Run without inverted index (pass-through) [pt], without  inverted index (pass-through) batch mode " +
-                "[ptB], with inverted index [ii], with inverted index and levelDB [iiLDB]?")
-      timingType = scala.io.StdIn.readLine()
-    } while (!(timingType.equals("pt") || timingType.equals("ptB") || timingType.equals("ii") | timingType.equals
-    ("iiLDB")))
-
-    timingType match {
-      case "pt" => evaluatePassThrough()
-      case "ptB" => evaluatePassThroughBatching()
-      case "ii" => evaluateInvertedIndex()
-      case "iiLDB" => evaluateInvertedIndexLevelDB()
-    }
-
-  }
-
-
+  /**
+    * Shows the details for a query from the training set. Displays relevant queries in green. Queries that are
+    * explicity irrelvant, but were retrieved by the training models in yellow and those w
+    *
+    * @param queryId QueryId from the training set.
+    * @param result  The result from the ranking model.
+    * @param N       How many of the top documents tho show. Defaults to 30.
+    */
   def printQueryDetails(queryId: Int, result: QueryResult, N: Int = 30): Unit = {
     logger.log(s"TOP $N DOCS : ")
     var i = 0
@@ -199,7 +237,7 @@ object SearchEngine {
         result.docToWordMap(doc)
           .sortBy(_.word)
           .map(x
-          => s"${x.word}: ${x.numOccurrence}").mkString(",")
+               => s"${x.word}: ${x.numOccurrence}").mkString(",")
       }")
       print(Console.RESET)
     }
@@ -234,11 +272,11 @@ object SearchEngine {
       println(s"TODO description fancy hit bonus [ double, default = $bestTfFHB ] ") //TODO write explanation
       fancyHitBonus = scala.io.StdIn.readLine()
     } while (!(fancyHitBonus.equals("") || Try {
-      fancyHitBonus.toDouble
-    }.isSuccess))
+                                                 fancyHitBonus.toDouble
+                                               }.isSuccess))
     val fhb: Double = Try {
-      fancyHitBonus.toDouble
-    }.getOrElse(bestTfFHB)
+                            fancyHitBonus.toDouble
+                          }.getOrElse(bestTfFHB)
     ("tf", (functionTypes, fhb))
   }
 
@@ -249,31 +287,31 @@ object SearchEngine {
       println(s"TODO theta [ double, default = $bestLanguageTheta ] ") //TODO write explanation
       thetaInput = scala.io.StdIn.readLine()
     } while (!(thetaInput.equals("") || Try {
-      thetaInput.toDouble
-    }.isSuccess))
+                                              thetaInput.toDouble
+                                            }.isSuccess))
     val theta: Double = Try {
-      thetaInput.toDouble
-    }.getOrElse(bestLanguageTheta)
+                              thetaInput.toDouble
+                            }.getOrElse(bestLanguageTheta)
     var zetaInput = ""
     do {
       println(s"TODO zeta [ int, default = $bestLanguageZeta] ") //TODO write explanation
       zetaInput = scala.io.StdIn.readLine()
     } while (!(zetaInput.equals("") || Try {
-      zetaInput.toInt
-    }.isSuccess))
+                                             zetaInput.toInt
+                                           }.isSuccess))
     val zeta: Int = Try {
-      zetaInput.toInt
-    }.getOrElse(bestLanguageZeta)
+                          zetaInput.toInt
+                        }.getOrElse(bestLanguageZeta)
     var fhrInput = ""
     do {
       println(s"TODO fhr [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explanation
       fhrInput = scala.io.StdIn.readLine()
     } while (!(fhrInput.equals("") || Try {
-      fhrInput.toDouble
-    }.isSuccess))
+                                            fhrInput.toDouble
+                                          }.isSuccess))
     val fhr: Double = Try {
-      fhrInput.toDouble
-    }.getOrElse(bestLanguageFancyHitRange)
+                            fhrInput.toDouble
+                          }.getOrElse(bestLanguageFancyHitRange)
     ("language", (theta, zeta, fhr))
   }
 
@@ -352,8 +390,8 @@ object SearchEngine {
     if (!skipTuning) {
       var count = 0
       val docsModesList = List("nnn", "nnc", "ntn", "ntc", "npn", "npc",
-        "lnn", "lnc", "ltn", "ltc", "lpn", "lpc",
-        "bnn", "bnc", "btn", "btc", "bpn", "bpc")
+                               "lnn", "lnc", "ltn", "ltc", "lpn", "lpc",
+                               "bnn", "bnc", "btn", "btc", "bpn", "bpc")
 
       val queryModesList = List("nnn")
       val fancyHitRange = List(0.0, 5.0, 7.0, 10.0, 15.0)
@@ -415,9 +453,32 @@ object SearchEngine {
   }
 
 
+  def evaluateTest(): Unit = {
+    val setupInfo = modelSetup()
+    val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
+    val pw = new PrintWriter(new File(s"ranking-${setupInfo._1.charAt(0)}-7.run"))
+    for (queryId <- QueryReader.codeToQuery.keys.toList.sorted) {
+      val result = rm.query(QueryReader.codeToQuery(queryId).split(' ').toList)
+      result.rankedDocs.zipWithIndex.foreach { case (docName, rank) =>
+        pw.write(s"$queryId ${rank + 1} $docName\n")
+                                             }
+    }
+    pw.close()
+    logger.log(s"wrote to ranking-${setupInfo._1.charAt(0)}-7.run")
+  }
+
+
+  /**
+    * Start point of the program. Ensures all input files are present, and either asks the user for what to run or
+    * takes command line parameters. Command line parameters will not be described for the end user and are mainly
+    * used for internal testing.
+    *
+    * @param args The command line arguments.
+    */
   def main(args: Array[String]): Unit = {
     val logger = new Logger("SearchEngine")
-    //    evaluateTiming()
+
+    //ensure all external files are given
 
     if (!Files.exists(Paths.get(new File("./src/main/resources/documents.zip").getCanonicalPath))) {
       logger.log(s"${Console.RED} Ensure ${new File("./src/main/resources/documents.zip").getCanonicalPath} exists ${
@@ -444,23 +505,8 @@ object SearchEngine {
       sys.exit(1)
     }
 
-
-    def evaluateTest(): Unit = {
-      val setupInfo = modelSetup()
-      val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
-      for (queryId <- QueryReader.codeToQuery.keys) {
-        val result = rm.query(QueryReader.codeToQuery(queryId).split(' ').toList)
-        val pw = new PrintWriter(new File(s"ranking-${setupInfo._1.charAt(0)}-7.run" ))
-        result.rankedDocs.zipWithIndex.foreach{ case (docName, rank) =>
-          pw.write(s"$queryId ${rank + 1} $docName\n")
-        }
-        pw.close()
-      }
-      logger.log(s"wrote to ranking-${setupInfo._1.charAt(0)}-7.run")
-    }
-
-
     if (args.length == 0) {
+      // show menu
       logger.log("Got no args, running in manual mode")
       println("Starting SearchEngine. What do you want to run?")
       println("=============================================================")
@@ -484,6 +530,7 @@ object SearchEngine {
       }
       sys.exit()
     } else {
+      //start program with cli parameters
       logger.log("Got args")
       if (!Set("tf", "language", "time").contains(args(0))) {
         logger.log(s"${Console.RED} Please specify a valid model as first argument (either language or tf) or time " +
@@ -498,10 +545,8 @@ object SearchEngine {
         gridSearchTf(skipTuning)
       else if (args(0).equals("language"))
         gridSearchLanguage(skipTuning)
-      else if (args(0).equals("time"))
-    {
-      if (args.length == 2)
-        {
+      else if (args(0).equals("time")) {
+        if (args.length == 2) {
           args(1) match {
             case "pt" => evaluatePassThrough()
             case "ptB" => evaluatePassThroughBatching()
@@ -509,8 +554,7 @@ object SearchEngine {
             case "iiLDB" => evaluateInvertedIndexLevelDB()
           }
         }
-    }
-
+      }
     }
   }
 }
