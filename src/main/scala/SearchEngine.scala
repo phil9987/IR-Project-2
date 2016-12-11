@@ -8,9 +8,9 @@ object SearchEngine {
 
   //the best found parameters / default parameters
   val bestTfFunctionString = "lpn.nnn"
-  val bestTfFHB = 7.0
-  val bestLanguageTheta = .55
-  val bestLanguageZeta = 150
+  val bestTfFHB = 10.0
+  val bestLanguageTheta = .75
+  val bestLanguageZeta = 200
   val bestLanguageFancyHitRange = 3.0
 
   //methods for running the timing tests
