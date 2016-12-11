@@ -3,6 +3,9 @@ import java.nio.file.{Files, Paths}
 
 import scala.util.Try
 
+/**
+  * Start point for the program. Provides text user interface and starts the model accordingly.
+  */
 object SearchEngine {
   val logger = new Logger("SearchEngine")
 
@@ -49,8 +52,7 @@ object SearchEngine {
     val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -92,8 +94,7 @@ object SearchEngine {
     val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -135,8 +136,7 @@ object SearchEngine {
     val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -178,8 +178,7 @@ object SearchEngine {
     val dr = new LevelDBDocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp)
-    rm.setHyperParameters(bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -208,41 +207,13 @@ object SearchEngine {
     pw.close()
   }
 
-  /**
-    * Shows the details for a query from the training set. Displays relevant queries in green. Queries that are
-    * explicity irrelvant, but were retrieved by the training models in yellow and those w
-    *
-    * @param queryId QueryId from the training set.
-    * @param result  The result from the ranking model.
-    * @param N       How many of the top documents tho show. Defaults to 30.
-    */
-  def printQueryDetails(queryId: Int, result: QueryResult, N: Int = 30): Unit = {
-    logger.log(s"TOP $N DOCS : ")
-    var i = 0
-    for (doc <- result.rankedDocs.take(N)) {
-      i += 1
-      var color = Console.RESET
-      if (queryId != -1) {
-        val judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == doc)
-        if (judgement.isEmpty) {
-          color = Console.YELLOW
-        } else if (judgement.head._2 == 1) {
-          color = Console.GREEN
-        }
-        else {
-          color = Console.RED
-        }
-      }
-      logger.log(s"$color TOP $i : $doc  tokens) => ${
-        result.docToWordMap(doc)
-          .sortBy(_.word)
-          .map(x
-               => s"${x.word}: ${x.numOccurrence}").mkString(",")
-      }")
-      print(Console.RESET)
-    }
-  }
+  //Read user-input and create model accordingly
 
+  /**
+    * Asks the user whether to run the tf or the language model.
+    *
+    * @return "tf" or "language" accordingly.
+    */
   def readModelSetup() = {
     var modelType = ""
     do {
@@ -252,6 +223,11 @@ object SearchEngine {
     modelType
   }
 
+  /**
+    * Asks the user which model to create and subsequently asks for the paramters.
+    *
+    * @return Either ("tf", (functionType, FancyHitBonus)) or ("language", (theta, zeta, fancyHitRange)).
+    */
   def modelSetup() = {
     val modelType = readModelSetup()
     if (modelType.equals("tf"))
@@ -260,6 +236,11 @@ object SearchEngine {
       readLanguageSetup()
   }
 
+  /**
+    * Asks the user for parameter details for the tf model.
+    *
+    * @return ("tf", (functionType, FancyHitBonus))
+    */
   def readTfSetup() = {
     var functionTypes = ""
     do {
@@ -280,6 +261,11 @@ object SearchEngine {
     ("tf", (functionTypes, fhb))
   }
 
+  /**
+    * Asks the user for parameter details for the language model.
+    *
+    * @return ("language", (theta, zeta, fancyHitRange))
+    */
   def readLanguageSetup() = {
 
     var thetaInput = ""
@@ -315,23 +301,16 @@ object SearchEngine {
     ("language", (theta, zeta, fhr))
   }
 
-  def evaluateTraining(): Unit = {
-    val setupInfo = modelSetup()
-    val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
-    evaluateModel(rm, verbose = true)
-  }
+  //Create the relevant setup given some configuration
 
-  def interactive(): Unit = {
-    val setupInfo = modelSetup()
-    val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
-    var query = ""
-    while (true) {
-      print("Enter query: ")
-      query = scala.io.StdIn.readLine()
-      println(rm.query(query.split(' ').toList).rankedDocs.mkString("[", ", ", "]"))
-    }
-  }
-
+  /**
+    * Setup WordPreprocessor, DocumentReader, InvertedIndex and Ranking Model based on user input.
+    *
+    * @param modelType      "tf" or "language"
+    * @param modelParameter Tuple with the model details. If "tf" is given this must be (functionType, FancyHitBonus)
+    *                       and if "language" is given this must be (theta, zeta, fancyHitRange).
+    * @return (WordPreprocessor, DocumentReader, InvertedIndex, RankingModel)
+    */
   def setup(modelType: String,
             modelParameter: Serializable): (WordPreprocessor, DocumentReader, InvertedIndex, RankingModel)
   = {
@@ -339,30 +318,72 @@ object SearchEngine {
     val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val rm = if (modelType == "language") {
-      new LanguageModel(ii, wp)
-    } else {
-      new VectorSpaceModel(ii, wp)
-    }
-    if (modelType == "language") {
       val par = modelParameter.asInstanceOf[(Double, Int, Double)]
-      rm.setHyperParameters(par._1, par._2, par._3)
+      new LanguageModel(ii, wp, par._1, par._2, par._3)
     } else {
       val par = modelParameter.asInstanceOf[(String, Double)]
-      rm.setModelMode(par._1)
-      rm.setHyperParameters(par._2)
+      new VectorSpaceModel(ii, wp, par._1, par._2)
     }
     (wp, dr, ii, rm)
   }
 
-  def evaluateModel(rm: RankingModel, verbose: Boolean = false): Double = {
+  //Helper methods for different run time modes
+
+  /**
+    * Shows the details for a query from the training set. Displays relevant queries in green. Queries that are
+    * explicitly irrelevant, but were retrieved by the training models in yellow and those for which the
+    * ground-through is unknown in red.
+    * Argument: The results are from other search engines. If they did not even retrieve the document, the document
+    * must be quite bad for the query.
+    *
+    * @param queryId QueryId from the training set.
+    * @param result  The result from the ranking model.
+    * @param N       How many of the top documents tho show. Defaults to 30.
+    */
+  def printQueryDetails(queryId: Int, result: QueryResult, N: Int = 30): Unit = {
+    logger.log(s"TOP $N DOCS : ")
+    var i = 0
+    for (doc <- result.rankedDocs.take(N)) {
+      i += 1
+      var color = Console.RESET
+      if (queryId != -1) {
+        val judgement = QueryMetric.codeToJudgement(queryId).filter(x => x._1 == doc)
+        if (judgement.isEmpty) {
+          color = Console.YELLOW
+        } else if (judgement.head._2 == 1) {
+          color = Console.GREEN
+        }
+        else {
+          color = Console.RED
+        }
+      }
+      logger.log(s"$color TOP $i : $doc  tokens) => ${
+        result.docToWordMap(doc)
+          .sortBy(_.word)
+          .map(x
+               => s"${x.word}: ${x.numOccurrence}").mkString(",")
+      }")
+      print(Console.RESET)
+    }
+  }
+
+  /**
+    * Given a setup (RankingModel, WordPreprocessor) runs the training queries on them, and reports detailed results
+    * along with metrics.
+    *
+    * @param rm      The ranking model.
+    * @param wp      The WordPreprocessor.
+    * @param verbose Whether to printadditionall details. Defaults to false.
+    * @return MAP score for the evaluation. (used in gridSearch mode)
+    */
+  def evaluateModel(rm: RankingModel, wp: WordPreprocessor, verbose: Boolean = false): Double = {
     var MAP = 0.0
-    var wp = new WordPreprocessor()
     for (queryId <- QueryMetric.codeToQuery.keys) {
       if (verbose) logger.log("=====================================================")
       val query = wp.replaceImportantAbbreviations(QueryMetric.codeToQuery(queryId))
       if (verbose) println(query.split(' ').toList)
       val result = rm.query(query.split(' ').toList)
-      printQueryDetails(queryId, result, 30)
+      if (verbose) printQueryDetails(queryId, result, 30)
       val metrics = QueryMetric.eval(queryId, result.rankedDocs)
       MAP = MAP + metrics._4
       if (verbose) println(s"Query $queryId -> precision: ${metrics._1(100)}, recall: ${metrics._2(100)} , F1: ${
@@ -375,6 +396,34 @@ object SearchEngine {
   }
 
 
+  //Different Modes of running the SearchEngine
+
+  /**
+    * Asks for user-input, starts according model and evaluates it on the training queries.
+    */
+  def evaluateTraining(): Unit = {
+    val setupInfo = modelSetup()
+    val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
+    evaluateModel(rm, wp, verbose = true)
+  }
+
+  /**
+    * Asks for user-input, starts according model and answers user input queries in real time.
+    */
+  def interactive(): Unit = {
+    val setupInfo = modelSetup()
+    val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
+    var query = ""
+    while (true) {
+      print("Enter query: ")
+      query = scala.io.StdIn.readLine()
+      println(rm.query(query.split(' ').toList).rankedDocs.mkString("[", ", ", "]"))
+    }
+  }
+
+  /**
+    * Asks the user for a model type and runs gridSearch for the parameters of that model type.
+    */
   def gridSearch() = {
     val modelType = readModelSetup()
     if (modelType.equals("tf"))
@@ -383,10 +432,14 @@ object SearchEngine {
       gridSearchLanguage()
   }
 
-
+  /**
+    * Runs gridSearch for the parameters of the tf model.
+    *
+    * @param skipTuning Skip the actual gridSearch and use previous best. Defaults to false.
+    */
   def gridSearchTf(skipTuning: Boolean = false) = {
     var bestParams = ("lpn.nnn", 7.0)
-    val (wp, dr, ii, rm) = setup("tf", bestParams)
+    val (wp, dr, ii, _) = setup("tf", bestParams)
     if (!skipTuning) {
       var count = 0
       val docsModesList = List("nnn", "nnc", "ntn", "ntc", "npn", "npc",
@@ -403,9 +456,8 @@ object SearchEngine {
           for (fancyHitBonus <- fancyHitRange) {
             count += 1
             logger.log(s"Tuning hyperparameters... ${100 * count / totalCombinations} percent done!")
-            rm.setModelMode(docMode + "." + queryMode)
-            rm.setHyperParameters(fancyHitBonus)
-            scores((docMode + "." + queryMode, fancyHitBonus)) = evaluateModel(rm)
+            val rm = new VectorSpaceModel(ii, wp, docMode + "." + queryMode, fancyHitBonus)
+            scores((docMode + "." + queryMode, fancyHitBonus)) = evaluateModel(rm, wp)
           }
         }
       }
@@ -415,14 +467,18 @@ object SearchEngine {
       println("DETAILS FOR BEST HYPERPARAMETERS : ")
       bestParams = scores.toList.sortBy(-_._2).head._1
     }
-    rm.setModelMode(bestParams._1)
-    rm.setHyperParameters(bestParams._2)
-    evaluateModel(rm, verbose = true)
+    val rm = new VectorSpaceModel(ii, wp, bestParams._1, bestParams._2)
+    evaluateModel(rm, wp, verbose = true)
   }
 
+  /**
+    * Runs gridSearch for the parameters of the language model.
+    *
+    * @param skipTuning Skip the actual gridSearch and use previous best. Defaults to false.
+    */
   def gridSearchLanguage(skipTuning: Boolean = false) = {
     var bestParams = (0.55, 150, 3.0)
-    val (wp, dr, ii, rm) = setup("language", bestParams)
+    val (wp, dr, ii, _) = setup("language", bestParams)
     if (!skipTuning) {
       val thetaRange = List(0.55, 0.60, 0.65, 0.7, 0.75, 0.8)
       val zetaRange = List(100, 150, 200, 250, 300)
@@ -436,8 +492,8 @@ object SearchEngine {
           for (fh <- fancyHitRange) {
             count += 1
             logger.log(s"Tuning hyperparameters... ${100 * count / totalCombinations} percent done!")
-            rm.setHyperParameters(theta, zeta, fh)
-            scores((theta, zeta, fh)) = evaluateModel(rm)
+            val rm = new LanguageModel(ii, wp, theta, zeta, fh)
+            scores((theta, zeta, fh)) = evaluateModel(rm, wp)
           }
         }
       }
@@ -448,11 +504,14 @@ object SearchEngine {
       println("DETAILS FOR BEST HYPERPARAMETERS : ")
       bestParams = scores.toList.sortBy(-_._2).head._1
     }
-    rm.setHyperParameters(bestParams._1, bestParams._2, bestParams._3)
-    evaluateModel(rm, verbose = true)
+    val rm = new LanguageModel(ii, wp, bestParams._1, bestParams._2, bestParams._3)
+    evaluateModel(rm, wp, verbose = true)
   }
 
-
+  /**
+    * Asks for user-input, starts according model and evaluates the test queries. The results are saved in an
+    * appropriately named file.
+    */
   def evaluateTest(): Unit = {
     val setupInfo = modelSetup()
     val (wp, dr, ii, rm) = setup(setupInfo._1, setupInfo._2)
@@ -466,7 +525,6 @@ object SearchEngine {
     pw.close()
     logger.log(s"wrote to ranking-${setupInfo._1.charAt(0)}-7.run")
   }
-
 
   /**
     * Start point of the program. Ensures all input files are present, and either asks the user for what to run or
@@ -524,7 +582,7 @@ object SearchEngine {
       i match {
         case 1 => evaluateTest()
         case 2 => evaluateTraining()
-        case 3 => evaluateTiming()
+        case 3 => timingTest()
         case 4 => gridSearch()
         case 5 => interactive()
       }
@@ -548,10 +606,10 @@ object SearchEngine {
       else if (args(0).equals("time")) {
         if (args.length == 2) {
           args(1) match {
-            case "pt" => evaluatePassThrough()
-            case "ptB" => evaluatePassThroughBatching()
-            case "ii" => evaluateInvertedIndex()
-            case "iiLDB" => evaluateInvertedIndexLevelDB()
+            case "pt" => timingTestPassThrough()
+            case "ptB" => timingTestPassThroughBatching()
+            case "ii" => timingTestInvertedIndex()
+            case "iiLDB" => timingTestInvertedIndexLevelDB()
           }
         }
       }

@@ -15,11 +15,6 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     */
   protected val batchQueryQueue = new scala.collection.mutable.MutableList[List[String]]
 
-  //TODO move to parameters
-  def setHyperParameters(theta: Double, zeta: Int, fh: Double): Unit = {}
-  def setHyperParameters(fh: Double): Unit = {}
-  def setModelMode(mode: String): Unit = {}
-
   /**
     * Scores documents for a given Query. This determines the ranking.
     * Abstract Implementation. Derived classes should implement a mathematical RankingModel here.
@@ -131,24 +126,26 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
   * Holds the result of a query.
   *
   * @param rankedDocs   The ranked documents. Actual result of the query.
-  * @param docToWordMap Addtional result. Shows the details of which documents contain which words. Used for
-  *                     addtional metrics and feedback.
+  * @param docToWordMap Additional result. Shows the details of which documents contain which words. Used for
+  *                     additionall metrics and feedback.
   */
 case class QueryResult(rankedDocs: List[String], docToWordMap: Map[String, List[WordInDocInfo]])
 
+/**
+  * TODO description
+  *
+  * @param invertedIndex The inverted index, from which to load data.
+  * @param preprocessor  WordPreprocessor that will be applied to the queries. Should be the same that was applied to
+  *                      the documents when reading from them.
+  * @param lambda
+  * @param zeta
+  * @param fancyHitBonus
+  */
 class LanguageModel(invertedIndex: InvertedIndex,
-                    preprocessor: WordPreprocessor) extends RankingModel(invertedIndex, preprocessor) {
+                    preprocessor: WordPreprocessor, lambda: Double, zeta: Int,
+                    fancyHitBonus: Double) extends RankingModel(invertedIndex, preprocessor) {
 
   override val logger = new Logger("LanguageModel")
-  var lambda: Double = 0.8
-  var zeta: Double = 100
-  var fancyHitBonus: Double = 0.0
-
-  override def setHyperParameters(newLambda: Double, newZeta: Int, newFancyHitBonus: Double): Unit = {
-    lambda = newLambda
-    zeta = newZeta
-    fancyHitBonus = newFancyHitBonus
-  }
 
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
     val docLength = invertedIndex.getDocLength(infoList.head.docId)
@@ -165,32 +162,34 @@ class LanguageModel(invertedIndex: InvertedIndex,
   }
 }
 
+/**
+  * TODO
+  *
+  * @param invertedIndex The inverted index, from which to load data.
+  * @param preprocessor  WordPreprocessor that will be applied to the queries. Should be the same that was applied to
+  *                      the documents when reading from them.
+  * @param modelMode
+  * @param fancyHitBonus
+  */
+/**
+  * the mode for the model
+  * first three letters : How to represent the document vector
+  * last three letters : How to represent the query vector
+  * a 3-letter block defines the following methods :
+  * first letter : how to count the term frequency (can be n for natural, l for logarithm, b for boolean)
+  * second letter : how to count the idf ( can b n for none or t for log(N/df))
+  * third letter : how to normalize the vector ( n for none, c for cosine )
+  */
 class VectorSpaceModel(invertedIndex: InvertedIndex,
-                       preprocessor: WordPreprocessor) extends RankingModel(invertedIndex, preprocessor) {
+                       preprocessor: WordPreprocessor, modelMode: String,
+                       fancyHitBonus: Double) extends RankingModel(invertedIndex,
+                                                                   preprocessor) {
 
   override val logger = new Logger("VectorSpaceModel")
-  /**
-    * the mode for the model
-    * first three letters : How to represent the document vector
-    * last three letters : How to represent the query vector
-    * a 3-letter block defines the following methods :
-    * first letter : how to count the term frequency (can be n for natural, l for logarithm, b for boolean)
-    * second letter : how to count the idf ( can b n for none or t for log(N/df))
-    * third letter : how to normalize the vector ( n for none, c for cosine )
-    */
-  var modelMode: String = "nnn.nnn"
-  var fancyHitBonus = 0.0
-
-  override def setModelMode(mode: String): Unit = {
-    modelMode = mode
-  }
-
-  override def setHyperParameters(fhb: Double): Unit = {
-    fancyHitBonus = fhb
-  }
 
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
-    val docVector = infoList.sortBy(_.word).map(info => tf(info, isDocument = true) * idf(info, isDocument = true))
+    val docVector = infoList.sortBy(_.word)
+      .map(info => tf(info, isDocument = true) * idf(info, isDocument = true))
     val queryVector = query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
       .head.docId, 1, isInHeader = false)
     ).map(
@@ -199,8 +198,9 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
   }
 
   def tf(info: WordInDocInfo, isDocument: Boolean): Double = {
-    var occurrence = if (isDocument && info.isInHeader) info.numOccurrence + fancyHitBonus else info.numOccurrence
-    var tfMode = if (isDocument) modelMode(0) else modelMode(4)
+    val occurrence = if (isDocument && info.isInHeader) info.numOccurrence + fancyHitBonus
+    else info.numOccurrence
+    val tfMode = if (isDocument) modelMode(0) else modelMode(4)
     assert(tfMode == 'n' || tfMode == 'l' || tfMode == 'b')
     if (tfMode == 'n')
       occurrence
@@ -229,7 +229,8 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
     }
     else {
       assert(idfMode == 'p')
-      math.max(0, math.log((invertedIndex.getDocCount - invertedIndex.getWordCount(info.word).docCount) / invertedIndex
+      math.max(0, math.log((invertedIndex.getDocCount - invertedIndex.getWordCount(info.word)
+        .docCount) / invertedIndex
         .getWordCount(info.word).docCount))
     }
   }
