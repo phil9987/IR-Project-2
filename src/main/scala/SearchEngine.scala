@@ -244,13 +244,13 @@ object SearchEngine {
   def readTfSetup() = {
     var functionTypes = ""
     do {
-      println(s"TODO description [ [nlp]{r}\\.[nlp]{3}, default = $bestTfFunctionString ] ") //TODO write explanation
+      println(s"TF-IDF Vector representation (  http://tinyurl.com/zgrqskx for details ) : [ [nlp]{r}\\.[nlp]{3}, default = $bestTfFunctionString ] ")
       functionTypes = scala.io.StdIn.readLine()
     } while (!(functionTypes.equals("") || functionTypes.matches("[nlp]{3}\\.[nlp]{3}")))
     if (functionTypes.equals("")) functionTypes = bestTfFunctionString
     var fancyHitBonus = ""
     do {
-      println(s"TODO description fancy hit bonus [ double, default = $bestTfFHB ] ") //TODO write explanation
+      println(s"fancyhitbonus ( counts as bonus occurences if the word appears in the document title) [ double, default = $bestTfFHB ] ") //TODO write explanation
       fancyHitBonus = scala.io.StdIn.readLine()
     } while (!(fancyHitBonus.equals("") || Try {
                                                  fancyHitBonus.toDouble
@@ -270,7 +270,9 @@ object SearchEngine {
 
     var thetaInput = ""
     do {
-      println(s"TODO theta [ double, default = $bestLanguageTheta ] ") //TODO write explanation
+      println(s"theta : balances the document language model (more important when theta is close to 1) " +
+        s"with the collection language model (creates smoothing, more important when theta is close to 0). " +
+        s"[ double, default = $bestLanguageTheta ] ") //TODO write explanation
       thetaInput = scala.io.StdIn.readLine()
     } while (!(thetaInput.equals("") || Try {
                                               thetaInput.toDouble
@@ -280,7 +282,7 @@ object SearchEngine {
                             }.getOrElse(bestLanguageTheta)
     var zetaInput = ""
     do {
-      println(s"TODO zeta [ int, default = $bestLanguageZeta] ") //TODO write explanation
+      println(s"zeta : constant to add to the document length (penalizes shorter documents) [ int, default = $bestLanguageZeta] ") //TODO write explanation
       zetaInput = scala.io.StdIn.readLine()
     } while (!(zetaInput.equals("") || Try {
                                              zetaInput.toInt
@@ -290,7 +292,7 @@ object SearchEngine {
                         }.getOrElse(bestLanguageZeta)
     var fhrInput = ""
     do {
-      println(s"TODO fhr [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explanation
+      println(s"fancyHitBonus : ( counts as bonus occurences if the word appears in the document title) [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explanation
       fhrInput = scala.io.StdIn.readLine()
     } while (!(fhrInput.equals("") || Try {
                                             fhrInput.toDouble
