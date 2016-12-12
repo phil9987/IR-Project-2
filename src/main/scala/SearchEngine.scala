@@ -246,7 +246,7 @@ object SearchEngine {
     do {
       println(s"TF-IDF Vector representation (  http://tinyurl.com/zgrqskx for details ) : [ [nlp]{r}\\.[nlp]{3}, default = $bestTfFunctionString ] ")
       functionTypes = scala.io.StdIn.readLine()
-    } while (!(functionTypes.equals("") || functionTypes.matches("[nlp]{3}\\.[nlp]{3}")))
+    } while (!(functionTypes.equals("") || functionTypes.matches("[nlpct]{3}\\.[nlpct]{3}")))
     if (functionTypes.equals("")) functionTypes = bestTfFunctionString
     var fancyHitBonus = ""
     do {
@@ -319,6 +319,7 @@ object SearchEngine {
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
+    Vectors.ii = ii
     val rm = if (modelType == "language") {
       val par = modelParameter.asInstanceOf[(Double, Int, Double)]
       new LanguageModel(ii, wp, par._1, par._2, par._3)
@@ -575,18 +576,20 @@ object SearchEngine {
       println("3.) Perform Timing comparison with and without inverted index")
       println("4.) Run Grid search for parameters on test queries")
       println("5.) Interactive search")
+      println("6.) Precompute Vector Norms")
       println("=============================================================")
       var i = 0
       do {
-        println("Your choice? [1-5]")
+        println("Your choice? [1-6]")
         i = scala.io.StdIn.readInt()
-      } while (i < 1 || i > 5)
+      } while (i < 1 || i > 6)
       i match {
         case 1 => evaluateTest()
         case 2 => evaluateTraining()
         case 3 => timingTest()
         case 4 => gridSearch()
         case 5 => interactive()
+        case 6 => precomputeNorms()
       }
       sys.exit()
     } else {
@@ -615,6 +618,16 @@ object SearchEngine {
           }
         }
       }
+    }
+  }
+
+  def precomputeNorms(): Unit ={
+  val (wp, dr, ii, rm) = setup("tf", ("nnn.nnn", 10.0))
+  Vectors.saveNorms()
+    println("EXAMPLE NORMS (DOCUMENT 1000) FOR VERIFICATION : ")
+    for (vt <- Vectors.vectorTypes){
+      Vectors.docVectorRepresentation =  vt
+      println(s"$vt => ${Vectors.retrieveNormFromDb(1000)}")
     }
   }
 }

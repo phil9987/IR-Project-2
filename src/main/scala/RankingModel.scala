@@ -188,67 +188,6 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
   override val logger = new Logger("VectorSpaceModel")
 
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
-    val docVector = infoList.sortBy(_.word)
-      .map(info => tf(info, isDocument = true) * idf(info, isDocument = true))
-    val queryVector = query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
-      .head.docId, 1, isInHeader = false)
-    ).map(
-      info => tf(info, isDocument = false) * idf(info, isDocument = false))
-    dotProduct(normalize(docVector, isDocument = true), normalize(queryVector, isDocument = false))
-  }
-
-  def tf(info: WordInDocInfo, isDocument: Boolean): Double = {
-    val occurrence = if (isDocument && info.isInHeader) info.numOccurrence + fancyHitBonus
-    else info.numOccurrence
-    val tfMode = if (isDocument) modelMode(0) else modelMode(4)
-    assert(tfMode == 'n' || tfMode == 'l' || tfMode == 'b')
-    if (tfMode == 'n')
-      occurrence
-    else if (tfMode == 'l') {
-      if (occurrence == 0)
-        0
-      else
-        1 + math.log(occurrence)
-    }
-    else {
-      assert(tfMode == 'b')
-      if (occurrence == 0)
-        0
-      else
-        1
-    }
-  }
-
-  def idf(info: WordInDocInfo, isDocument: Boolean): Double = {
-    val idfMode = if (isDocument) modelMode(1) else modelMode(5)
-    assert(idfMode == 'n' || idfMode == 't' || idfMode == 'p')
-    if (idfMode == 'n')
-      1
-    else if (idfMode == 't') {
-      math.log(invertedIndex.getDocCount / invertedIndex.getWordCount(info.word).docCount)
-    }
-    else {
-      assert(idfMode == 'p')
-      math.max(0, math.log((invertedIndex.getDocCount - invertedIndex.getWordCount(info.word)
-        .docCount) / invertedIndex
-        .getWordCount(info.word).docCount))
-    }
-  }
-
-  def dotProduct(doc: List[Double], query: List[Double]): Double = {
-    assert(doc.length == query.length)
-    (doc zip query).map(x => x._1 * x._2).sum
-  }
-
-  def normalize(v: List[Double], isDocument: Boolean): List[Double] = {
-    val normMode = if (isDocument) modelMode(2) else modelMode(6)
-    assert(normMode == 'n' || normMode == 'c')
-    if (normMode == 'n')
-      v
-    else {
-      assert(normMode == 'c')
-      val divisor = math.sqrt(v.map(x => x * x).sum)
-      v.map(_ / divisor)
-    }
+      Vectors.score(infoList, query, modelMode)
   }
 }

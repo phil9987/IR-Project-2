@@ -6,6 +6,7 @@
   */
 class InvertedIndex(documentReader: DocumentReader) {
 
+  val reader = documentReader
   /**
     * Maps a word to the position in the dictionary.
     */
