@@ -343,7 +343,7 @@ object SearchEngine {
     * @param result  The result from the ranking model.
     * @param N       How many of the top documents tho show. Defaults to 30.
     */
-  def printQueryDetails(queryId: Int, result: QueryResult, N: Int = 30): Unit = {
+  def printQueryDetails(queryId: Int, result: QueryResult, N: Int = 30, rm: RankingModel): Unit = {
     logger.log(s"TOP $N DOCS : ")
     var i = 0
     for (doc <- result.rankedDocs.take(N)) {
@@ -360,7 +360,8 @@ object SearchEngine {
           color = Console.RED
         }
       }
-      logger.log(s"$color TOP $i : $doc  tokens) => ${
+      val numOfTokens = rm.ii.reader.documentInfo(result.docToWordMap(doc)(0).docId)._1
+      logger.log(s"$color TOP $i : $doc  ( $numOfTokens tokens) => ${
         result.docToWordMap(doc)
           .sortBy(_.word)
           .map(x
@@ -386,7 +387,7 @@ object SearchEngine {
       val query = wp.replaceImportantAbbreviations(QueryMetric.codeToQuery(queryId))
       if (verbose) println(query.split(' ').toList)
       val result = rm.query(query.split(' ').toList)
-      if (verbose) printQueryDetails(queryId, result, 30)
+      if (verbose) printQueryDetails(queryId, result, 30, rm)
       val metrics = QueryMetric.eval(queryId, result.rankedDocs)
       MAP = MAP + metrics._4
       if (verbose) println(s"Query $queryId -> precision: ${metrics._1(100)}, recall: ${metrics._2(100)} , F1: ${
@@ -448,8 +449,8 @@ object SearchEngine {
       val docsModesList = List("nnn", "nnc", "ntn", "ntc", "npn", "npc",
                                "lnn", "lnc", "ltn", "ltc", "lpn", "lpc",
                                "bnn", "bnc", "btn", "btc", "bpn", "bpc")
+      var queryModesList = List("nnn", "npn","ntn")
 
-      val queryModesList = List("nnn")
       val fancyHitRange = List(0.0, 5.0, 7.0, 10.0, 15.0)
 
       val scores = scala.collection.mutable.Map[(String, Double), Double]()
@@ -621,13 +622,11 @@ object SearchEngine {
     }
   }
 
-  def precomputeNorms(): Unit ={
-  val (wp, dr, ii, rm) = setup("tf", ("nnn.nnn", 10.0))
-  Vectors.saveNorms()
-    println("EXAMPLE NORMS (DOCUMENT 1000) FOR VERIFICATION : ")
-    for (vt <- Vectors.vectorTypes){
-      Vectors.docVectorRepresentation =  vt
-      println(s"$vt => ${Vectors.retrieveNormFromDb(1000)}")
-    }
+  /**
+    * Precomputes the norms used by the Vector Space model. This is required in order to take
+    */
+  def precomputeNorms(): Unit = {
+    val (wp, dr, ii, rm) = setup("tf", ("nnn.nnn", 0.0)) //used to initialize inverted index, actual arguments don't matter
+    Vectors.saveNorms()
   }
 }

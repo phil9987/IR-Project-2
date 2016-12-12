@@ -9,6 +9,7 @@
   *                      the documents when reading from them.
   */
 abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPreprocessor) {
+  val ii = invertedIndex
   val logger = new Logger("AbstractRankingModel")
   /**
     * Stores the Queries in batch-mode.
@@ -177,7 +178,7 @@ class LanguageModel(invertedIndex: InvertedIndex,
   * last three letters : How to represent the query vector
   * a 3-letter block defines the following methods :
   * first letter : how to count the term frequency (can be n for natural, l for logarithm, b for boolean)
-  * second letter : how to count the idf ( can b n for none or t for log(N/df))
+  * second letter : how to count the idf ( can be n for none or t for log(N/df))
   * third letter : how to normalize the vector ( n for none, c for cosine )
   */
 class VectorSpaceModel(invertedIndex: InvertedIndex,
@@ -188,6 +189,6 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
   override val logger = new Logger("VectorSpaceModel")
 
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
-      Vectors.score(infoList, query, modelMode)
+      Vectors.score(infoList, query, modelMode, fancyHitBonus)
   }
 }

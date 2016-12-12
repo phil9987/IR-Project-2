@@ -16,8 +16,7 @@ object Vectors{
   type TermVector = List[Double]
 
   var levelDBOptions : Options = new Options()
-  println("ACQUIRING LOCK DATABASE...")
-  var db: DB =  org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File("VECTORNORMS2"), levelDBOptions)
+  var db: DB =  org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File("VECTORNORMS"), levelDBOptions)
   var logger = new Logger("VectorNorms")
 
   val vectorTypes = List("nn","nt", "np", "ln", "lt","lp", "bn","bt","bp")
@@ -26,7 +25,7 @@ object Vectors{
     assert(vectorType.length == 2)
     var tfMode = vectorType(0)
     var idfMode = vectorType(1)
-    math.sqrt(infos.map(x => tf(x, tfMode) * idf(x, idfMode)).map(x=> x*x).sum)
+    math.sqrt(infos.map(x => tf(x, tfMode, 7.0) * idf(x, idfMode)).map(x=> x*x).sum)
   }
 
   def toByteArray(value : Double) : Array[Byte] = {
@@ -58,7 +57,6 @@ object Vectors{
 
   // Remembers how the model represents the document vector
   var docVectorRepresentation : String = ""
-
   /**
     * Retrieves the norm for the given doc from the DB.
     * Uses the saved docVectorReprentation to know which norm to retrieve
@@ -76,19 +74,23 @@ object Vectors{
     * @param tfMode how to calculate the term frequency (n => natural, l=>logarithmic, b=> boolean)
     * @return a double representing the calculated tf
     */
-  def tf(info: WordInDocInfo, tfMode: Char): Double = {
+  def tf(info: WordInDocInfo, tfMode: Char, fancyHitBonus : Double = 0.0): Double = {
     assert(tfMode == 'n' || tfMode == 'l' || tfMode == 'b')
+    var occurrence  : Double = info.numOccurrence
+
+    if(info.isInHeader) occurrence += fancyHitBonus
+
     if (tfMode == 'n')
-      info.numOccurrence
+      occurrence
     else if (tfMode == 'l') {
-      if (info.numOccurrence == 0)
+      if (occurrence == 0)
         0
       else
-        1 + math.log(info.numOccurrence)
+        1 + math.log(occurrence)
     }
     else {
       assert(tfMode == 'b')
-      if (info.numOccurrence == 0)
+      if (occurrence == 0)
         0
       else
         1
@@ -129,9 +131,9 @@ object Vectors{
       v
     else {
       assert(normMode == 'c')
-      val divisor = if(docId == -1) math.sqrt(v.map(x => x * x).sum)
-      else retrieveNormFromDb(docId)
-      v.map(_ / divisor)
+      val divisor = if(docId == -1) math.sqrt(v.map(x => x * x).sum)  else retrieveNormFromDb(docId)
+      return  v.map(_ / divisor)
+
     }
   }
 
@@ -152,10 +154,10 @@ object Vectors{
     * @param query the list of terms appearing in query
     * @param modelMode which vecotr representation is used (example : ltn.nnc )
     */
-  def score(infoList: List[WordInDocInfo], query : List[String], modelMode : String) : Double = {
+  def score(infoList: List[WordInDocInfo], query : List[String], modelMode : String, fancyHitBonus : Double) : Double = {
     docVectorRepresentation = modelMode.substring(0,2)
     val docVector : TermVector = infoList.sortBy(_.word)
-      .map(info => tf(info, modelMode(0)) * idf(info, modelMode(1)))
+      .map(info => tf(info, modelMode(0), fancyHitBonus) * idf(info, modelMode(1)))
     val queryVector : TermVector= query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
       .head.docId, 1, isInHeader = false)
     ).map(info => tf(info, modelMode(4)) * idf(info, modelMode(5)))
