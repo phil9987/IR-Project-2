@@ -18,11 +18,19 @@ object TermVectors{
   var logger = new Logger("VectorNorms")
   // Remembers how the model represents the document vector
   var docVectorRepresentation: String = ""
+  var dbLoaded = false
 
+  /**
+    * Takes the database file and sets it as the current db.
+    */
   def loadDb(): Unit ={
-    db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+    if (!dbLoaded) db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+    dbLoaded = true
   }
 
+  /**
+    Re-creates a database. Erases existing database.
+   */
   def saveNorms(): Unit ={
     if (Files.exists(Paths.get(levelDBFileName))) {
       logger.log("found existing index DB - deleting it")
