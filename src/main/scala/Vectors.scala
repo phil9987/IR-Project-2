@@ -1,43 +1,23 @@
-import org.iq80.leveldb.DB
 import java.io._
 import java.nio.ByteBuffer
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
-import java.lang.Double.doubleToLongBits
-import ch.ethz.dal.tinyir.processing.{TipsterParse, Tokenizer, XMLDocument}
-import ch.ethz.dal.tinyir.io.TipsterStream
+
 import org.iq80.leveldb.{DB, Options}
 
 import scala.collection.mutable.{HashMap => MutHashMap}
 
 object Vectors{
 
-  var ii : InvertedIndex = _
   type TermVector = List[Double]
-
+  val vectorTypes = List("nn", "nt", "np", "ln", "lt", "lp", "bn", "bt", "bp")
+  var ii: InvertedIndex = _
   var levelDBOptions : Options = new Options()
   var levelDBFileName = "VECTORNORMS"
-
   var db: DB =  org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
   var logger = new Logger("VectorNorms")
-
-  val vectorTypes = List("nn","nt", "np", "ln", "lt","lp", "bn","bt","bp")
-
-  def calculateNorm(infos : List[WordInDocInfo], vectorType : String) : Double = {
-    assert(vectorType.length == 2)
-    var tfMode = vectorType(0)
-    var idfMode = vectorType(1)
-    math.sqrt(infos.map(x => tf(x, tfMode, 7.0) * idf(x, idfMode)).map(x=> x*x).sum)
-  }
-
-  def toByteArray(value : Double) : Array[Byte] = {
-    val bytes = Array.fill[Byte](8)(0)
-    ByteBuffer.wrap(bytes).putDouble(value)
-    return bytes
-  }
-  def toDouble(bytes : Array[Byte]) : Double = {
-    return ByteBuffer.wrap(bytes).getDouble()
-  }
+  // Remembers how the model represents the document vector
+  var docVectorRepresentation: String = ""
 
   def saveNorms(): Unit ={
     if (Files.exists(Paths.get(levelDBFileName))) {
@@ -73,17 +53,11 @@ object Vectors{
     batch.close()
   }
 
-  // Remembers how the model represents the document vector
-  var docVectorRepresentation : String = ""
-  /**
-    * Retrieves the norm for the given doc from the DB.
-    * Uses the saved docVectorReprentation to know which norm to retrieve
-    * @param docId For which document to retrieve the norm
-    * @return : The norm to return (as Double)
-   */
-  def retrieveNormFromDb(docId : Int): Double ={
-    assert(vectorTypes.contains(docVectorRepresentation))
-    toDouble(db.get((docId.toString + docVectorRepresentation).getBytes))
+  def calculateNorm(infos: List[WordInDocInfo], vectorType: String): Double = {
+    assert(vectorType.length == 2)
+    var tfMode = vectorType(0)
+    var idfMode = vectorType(1)
+    math.sqrt(infos.map(x => tf(x, tfMode, 7.0) * idf(x, idfMode)).map(x => x * x).sum)
   }
 
   /**
@@ -135,8 +109,33 @@ object Vectors{
     }
   }
 
+  def toByteArray(value: Double): Array[Byte] = {
+    val bytes = Array.fill[Byte](8)(0)
+    ByteBuffer.wrap(bytes).putDouble(value)
+    bytes
+  }
+
+  /**
+    * Interface used by the ranking model to get the score(document, query)
+    *
+    * @param infoList  the list of relevant WordInDocInfos for the document
+    * @param query     the list of terms appearing in query
+    * @param modelMode which vector representation is used (example : ltn.nnc )
+    */
+  def score(infoList: List[WordInDocInfo], query: List[String], modelMode: String, fancyHitBonus: Double): Double = {
+    docVectorRepresentation = modelMode.substring(0, 2)
+    val docVector: TermVector = infoList.sortBy(_.word)
+      .map(info => tf(info, modelMode(0), fancyHitBonus) * idf(info, modelMode(1)))
+    val queryVector: TermVector = query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
+      .head.docId, 1, isInHeader = false)
+    ).map(info => tf(info, modelMode(4)) * idf(info, modelMode(5)))
+
+    dotProduct(normalize(docVector, infoList.head.docId, modelMode(2)), normalize(queryVector, -1, modelMode(6)))
+  }
+
   /**
     * Normalizes the vector
+    *
     * @param v The vector to normalize
     * @param docId Which doc the vector corresponds to (used to fetch norm in DB).
     *              -1 means the vector corresponds to a query.
@@ -150,9 +149,25 @@ object Vectors{
     else {
       assert(normMode == 'c')
       val divisor = if(docId == -1) math.sqrt(v.map(x => x * x).sum)  else retrieveNormFromDb(docId)
-      return  v.map(_ / divisor)
+      v.map(_ / divisor)
 
     }
+  }
+
+  /**
+    * Retrieves the norm for the given doc from the DB.
+    * Uses the saved docVectorRepresentation to know which norm to retrieve
+    *
+    * @param docId For which document to retrieve the norm
+    * @return : The norm to return (as Double)
+    */
+  def retrieveNormFromDb(docId: Int): Double = {
+    assert(vectorTypes.contains(docVectorRepresentation))
+    toDouble(db.get((docId.toString + docVectorRepresentation).getBytes))
+  }
+
+  def toDouble(bytes: Array[Byte]): Double = {
+    ByteBuffer.wrap(bytes).getDouble()
   }
 
   /**
@@ -164,23 +179,6 @@ object Vectors{
   def dotProduct(x : TermVector, y: TermVector) : Double = {
     assert(x.length == y.length)
     (x zip y).map(x => x._1 * x._2).sum
-  }
-
-  /**
-    * Interface used by the ranking model to get the score(document, query)
-    * @param infoList the list of relevant WordInDocInfos for the document
-    * @param query the list of terms appearing in query
-    * @param modelMode which vecotr representation is used (example : ltn.nnc )
-    */
-  def score(infoList: List[WordInDocInfo], query : List[String], modelMode : String, fancyHitBonus : Double) : Double = {
-    docVectorRepresentation = modelMode.substring(0,2)
-    val docVector : TermVector = infoList.sortBy(_.word)
-      .map(info => tf(info, modelMode(0), fancyHitBonus) * idf(info, modelMode(1)))
-    val queryVector : TermVector= query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
-      .head.docId, 1, isInHeader = false)
-    ).map(info => tf(info, modelMode(4)) * idf(info, modelMode(5)))
-
-    dotProduct(normalize(docVector, infoList.head.docId, modelMode(2)), normalize(queryVector, -1, modelMode(6)))
   }
 }
 

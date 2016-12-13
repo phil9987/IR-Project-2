@@ -51,43 +51,6 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
   }
 
   /**
-    * Given a list of WordInDocInfo for one document and the list of query terms for one document, extends the list
-    * to also include WordInDocInfo (with nrOccurrence=0) for the words not occurring in the document.
-    *
-    * @param infoList   The given list of WordInDocInfo for one document.
-    * @param queryTerms The list of query terms for a query.
-    * @return The infoList extended to also include WordInDocInfos for queryTerms that did not occur in the document.
-    */
-  def extend(infoList: List[WordInDocInfo], queryTerms: List[String]): List[WordInDocInfo] = {
-    var newList = infoList
-    queryTerms.foreach {
-                         case (term) =>
-                           if (!newList.exists { x => x.word == term }) {
-                             newList = newList :+ WordInDocInfo(term, newList.head.docName, newList.head.docId, 0,
-                                                                isInHeader = false)
-                           }
-                       }
-    newList.sortBy(_.word)
-  }
-
-  //We can also perform multiple queries in batch mode. This is relevant if not using an inverted index.
-
-  /**
-    * Given a preprocessed query (words) and a docName to WordInDocInfos Map performs the actual ranking and returns
-    * the result.
-    *
-    * @param docToWordMap A map containing a key for all relevant documents and for each key a list of WordInDocInfo
-    *                     for all query terms.
-    * @param words        The processed query terms.
-    * @return A QueryResult containing the ranked documents and the docToWordMap.
-    */
-  def query(docToWordMap: Map[String, List[WordInDocInfo]], words: List[String]): QueryResult = {
-    val scoresPerDoc = docToWordMap.mapValues(scoringFunction(_, words))
-    val rankedDocs = scoresPerDoc.toList.sortBy(-_._2).take(100).map(_._1)
-    QueryResult(rankedDocs, docToWordMap)
-  }
-
-  /**
     * Add a query to the list of queries to execute in batch mode. Returns after enqueuing. No result provided.
     *
     * @param query The query.
@@ -95,6 +58,8 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
   def enqueueBatchQuery(query: List[String]): Unit = {
     batchQueryQueue += query
   }
+
+  //We can also perform multiple queries in batch mode. This is relevant if not using an inverted index.
 
   /**
     * Performs all currently queued queries for the batch mode. Only does one query to the inverted index, which is
@@ -121,6 +86,41 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
     WordAndDocToWordMapResults.map(x => query(x._2, x._1)).toList
   }
 
+  /**
+    * Given a list of WordInDocInfo for one document and the list of query terms for one document, extends the list
+    * to also include WordInDocInfo (with nrOccurrence=0) for the words not occurring in the document.
+    *
+    * @param infoList   The given list of WordInDocInfo for one document.
+    * @param queryTerms The list of query terms for a query.
+    * @return The infoList extended to also include WordInDocInfos for queryTerms that did not occur in the document.
+    */
+  def extend(infoList: List[WordInDocInfo], queryTerms: List[String]): List[WordInDocInfo] = {
+    var newList = infoList
+    queryTerms.foreach {
+                         case (term) =>
+                           if (!newList.exists { x => x.word == term }) {
+                             newList = newList :+ WordInDocInfo(term, newList.head.docName, newList.head.docId, 0,
+                                                                isInHeader = false)
+                           }
+                       }
+    newList.sortBy(_.word)
+  }
+
+  /**
+    * Given a preprocessed query (words) and a docName to WordInDocInfos Map performs the actual ranking and returns
+    * the result.
+    *
+    * @param docToWordMap A map containing a key for all relevant documents and for each key a list of WordInDocInfo
+    *                     for all query terms.
+    * @param words        The processed query terms.
+    * @return A QueryResult containing the ranked documents and the docToWordMap.
+    */
+  def query(docToWordMap: Map[String, List[WordInDocInfo]], words: List[String]): QueryResult = {
+    val scoresPerDoc = docToWordMap.mapValues(scoringFunction(_, words))
+    val rankedDocs = scoresPerDoc.toList.sortBy(-_._2).take(100).map(_._1)
+    QueryResult(rankedDocs, docToWordMap)
+  }
+
 }
 
 /**
@@ -128,7 +128,7 @@ abstract class RankingModel(invertedIndex: InvertedIndex, preprocessor: WordPrep
   *
   * @param rankedDocs   The ranked documents. Actual result of the query.
   * @param docToWordMap Additional result. Shows the details of which documents contain which words. Used for
-  *                     additionall metrics and feedback.
+  *                     additional metrics and feedback.
   */
 case class QueryResult(rankedDocs: List[String], docToWordMap: Map[String, List[WordInDocInfo]])
 
