@@ -29,8 +29,18 @@ class WordPreprocessor {
   abbreviations.put("multiport communications interface","multiport-communications-interface")
 
   /**
+    * turns every letter to lowercase, removes stopwords and words not made up from letters or '-'.
+    *
+    * @param tokens list of tokens
+    * @return preprocessed list of tokens
+    */
+  def preprocess(tokens: List[String]): List[String] =
+  tokens.map(_.toLowerCase).filter(filterWords).map(cachedStem)
+
+  /**
     * Translate a token to its stemmed base word.
     * Uses a cache (HashMap) in order not to duplicate calculations.
+    *
     * @param token The token to be stemmed
     * @return stemmed word.
     */
@@ -48,18 +58,10 @@ class WordPreprocessor {
   def filterWords(word: String) = !StopWords.stopWords.contains(word) && pattern.matcher(word).matches()
 
   /**
-    * turns every letter to lowercase, removes stopwords and words not made up from letters or '-'.
-    * @param tokens list of tokens
-    * @return preprocessed list of tokens
-    */
-  def preprocess(tokens : List[String]) : List[String] =
-    tokens.map(_.toLowerCase).filter(filterWords(_)).map(cachedStem)
-
-
-  /**
     * Replaces a set of terms and abbreviations
-    * @param text
-    * @return
+    *
+    * @param text The given text.
+    * @return The text with abbiviations replaced.
     */
   def replaceImportantAbbreviations(text: String) : String = {
     var final_content = text

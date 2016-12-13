@@ -224,7 +224,7 @@ object SearchEngine {
   }
 
   /**
-    * Asks the user which model to create and subsequently asks for the paramters.
+    * Asks the user which model to create and subsequently asks for the parameters.
     *
     * @return Either ("tf", (functionType, FancyHitBonus)) or ("language", (theta, zeta, fancyHitRange)).
     */
@@ -292,7 +292,7 @@ object SearchEngine {
                         }.getOrElse(bestLanguageZeta)
     var fhrInput = ""
     do {
-      println(s"fancyHitBonus : ( counts as bonus occurences if the word appears in the document title) [ double, default = $bestLanguageFancyHitBonus ] ") //TODO write explanation
+      println(s"fancyHitBonus : ( counts as bonus occurrences if the word appears in the document title) [ double, default = $bestLanguageFancyHitBonus ] ") //TODO write explanation
       fhrInput = scala.io.StdIn.readLine()
     } while (!(fhrInput.equals("") || Try {
                                             fhrInput.toDouble
@@ -360,7 +360,7 @@ object SearchEngine {
           color = Console.RED
         }
       }
-      val numOfTokens = rm.ii.reader.documentInfo(result.docToWordMap(doc)(0).docId)._1
+      val numOfTokens = rm.ii.reader.documentInfo(result.docToWordMap(doc).head.docId)._1
       logger.log(s"$color TOP $i : $doc  ( $numOfTokens tokens) => ${
         result.docToWordMap(doc)
           .sortBy(_.word)
@@ -377,7 +377,7 @@ object SearchEngine {
     *
     * @param rm      The ranking model.
     * @param wp      The WordPreprocessor.
-    * @param verbose Whether to printadditionall details. Defaults to false.
+    * @param verbose Whether to print additional details. Defaults to false.
     * @return MAP score for the evaluation. (used in gridSearch mode)
     */
   def evaluateModel(rm: RankingModel, wp: WordPreprocessor, verbose: Boolean = false): Double = {
