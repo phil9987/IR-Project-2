@@ -14,7 +14,7 @@ object TermVectors{
   var ii: InvertedIndex = _
   var levelDBOptions : Options = new Options()
   var levelDBFileName = "VECTORNORMS"
-  var db: DB =  org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+  var db: DB = _
   var logger = new Logger("VectorNorms")
   // Remembers how the model represents the document vector
   var docVectorRepresentation: String = ""
@@ -35,7 +35,7 @@ object TermVectors{
         }
       })
     }
-
+    db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
     val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
     var docId = 0
     val batch = db.createWriteBatch()
