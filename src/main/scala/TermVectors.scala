@@ -19,6 +19,10 @@ object TermVectors{
   // Remembers how the model represents the document vector
   var docVectorRepresentation: String = ""
 
+  def loadDb(): Unit ={
+    db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+  }
+
   def saveNorms(): Unit ={
     if (Files.exists(Paths.get(levelDBFileName))) {
       logger.log("found existing index DB - deleting it")
@@ -35,7 +39,7 @@ object TermVectors{
         }
       })
     }
-    db = org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
+    loadDb()
     val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
     var docId = 0
     val batch = db.createWriteBatch()

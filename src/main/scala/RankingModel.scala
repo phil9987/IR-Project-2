@@ -193,7 +193,8 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
     logger.log("DID NOT FIND VECTORNORMS DATABASE! Creating it....")
     TermVectors.saveNorms()
   }
-
+  else
+    TermVectors.loadDb()
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
       TermVectors.score(infoList, query, modelMode, fancyHitBonus)
   }
