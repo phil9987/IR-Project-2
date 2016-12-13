@@ -6,3 +6,5 @@ scalaVersion := "2.11.5"
 
 // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
 libraryDependencies += "org.iq80.leveldb" % "leveldb" % "0.9"
+
+javaOptions += "-Xmx4G"
