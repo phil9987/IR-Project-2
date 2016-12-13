@@ -572,12 +572,13 @@ object SearchEngine {
       logger.log("Got no args, running in manual mode")
       println("Starting SearchEngine. What do you want to run?")
       println("=============================================================")
-      println("1.) Evaluate test queries on single model for hand in")
-      println("2.) Evaluate training queries and output metrics")
-      println("3.) Perform Timing comparison with and without inverted index")
-      println("4.) Run Grid search for parameters on test queries")
+      println("1.) Evaluate test queries on single model for hand in. Generates files ranking-{l,t}-7.run")
+      println("2.) Evaluate training queries and output metrics. Prompts for model and hyperparameters, runs model, prints score. ")
+      println("3.) Run Grid search for parameters on test queries." +
+        " Prints the MAP for each hyperparameter combination with details for the best solution.")
+      println("4.) Perform Timing comparison with and without inverted index")
       println("5.) Interactive search")
-      println("6.) Precompute Vector Norms")
+      println("6.) Precompute Vector Norms. - Gets also executed once you use the tf model")
       println("=============================================================")
       var i = 0
       do {
@@ -587,8 +588,8 @@ object SearchEngine {
       i match {
         case 1 => evaluateTest()
         case 2 => evaluateTraining()
-        case 3 => timingTest()
-        case 4 => gridSearch()
+        case 3 => gridSearch()
+        case 4 => timingTest()
         case 5 => interactive()
         case 6 => precomputeNorms()
       }
