@@ -627,7 +627,7 @@ object SearchEngine {
     * Precomputes the norms used by the Vector Space model and stores them in the Database.
     */
   def precomputeNorms(): Unit = {
-    val (wp, dr, ii, rm) = setup("tf", ("nnn.nnn", 0.0)) //used to initialize inverted index, actual arguments don't matter
+    val (wp, dr, ii, rm) = setup("language", ("nnn.nnn", 0.0)) //used to initialize inverted index
     TermVectors.saveNorms()
   }
 }
