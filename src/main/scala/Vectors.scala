@@ -16,7 +16,9 @@ object Vectors{
   type TermVector = List[Double]
 
   var levelDBOptions : Options = new Options()
-  var db: DB =  org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File("VECTORNORMS"), levelDBOptions)
+  var levelDBFileName = "VECTORNORMS"
+
+  var db: DB =  org.iq80.leveldb.impl.Iq80DBFactory.factory.open(new File(levelDBFileName), levelDBOptions)
   var logger = new Logger("VectorNorms")
 
   val vectorTypes = List("nn","nt", "np", "ln", "lt","lp", "bn","bt","bp")
@@ -38,6 +40,22 @@ object Vectors{
   }
 
   def saveNorms(): Unit ={
+    if (Files.exists(Paths.get(levelDBFileName))) {
+      logger.log("found existing index DB - deleting it")
+      Files.walkFileTree(Paths.get(levelDBFileName), new SimpleFileVisitor[Path]() {
+        override def visitFile(file: Path,
+                               attrs: BasicFileAttributes): FileVisitResult = {
+          Files.delete(file)
+          FileVisitResult.CONTINUE
+        }
+        override def postVisitDirectory(dir: Path,
+                                        exc: IOException): FileVisitResult = {
+          Files.delete(dir)
+          FileVisitResult.CONTINUE
+        }
+      })
+    }
+
     val tipster = new TipsterStreamPlus(new File("./src/main/resources").getCanonicalPath, ".zip")
     var docId = 0
     val batch = db.createWriteBatch()
