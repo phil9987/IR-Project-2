@@ -574,7 +574,7 @@ object SearchEngine {
       println("=============================================================")
       println("1.) Evaluate test queries on single model for hand in. Generates files ranking-{l,t}-7.run")
       println("2.) Evaluate training queries and output metrics. Prompts for model and hyperparameters, runs model, prints score. ")
-      println("3.) Run Grid search for parameters on test queries." +
+      println("3.) Run Grid search for parameters on training queries." +
         " Prints the MAP for each hyperparameter combination with details for the best solution.")
       println("4.) Perform Timing comparison with and without inverted index")
       println("5.) Interactive search")
