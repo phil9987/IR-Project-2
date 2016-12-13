@@ -244,13 +244,13 @@ object SearchEngine {
   def readTfSetup() = {
     var functionTypes = ""
     do {
-      println(s"TF-IDF Vector representation (  http://tinyurl.com/zgrqskx for details ) : [ [nlp]{r}\\.[nlp]{3}, default = $bestTfFunctionString ] ")
+      println(s"Vector representation  in SMART notation( http://tinyurl.com/zgrqskx for details) : [ [nlb][ntp][nc]\\.[nlb][ntp][nc], default = $bestTfFunctionString ] ")
       functionTypes = scala.io.StdIn.readLine()
     } while (!(functionTypes.equals("") || functionTypes.matches("[nlpct]{3}\\.[nlpct]{3}")))
     if (functionTypes.equals("")) functionTypes = bestTfFunctionString
     var fancyHitBonus = ""
     do {
-      println(s"fancyhitbonus ( counts as bonus occurences if the word appears in the document title) [ double, default = $bestTfFHB ] ") //TODO write explanation
+      println(s"Fancyhit bonus (counts as bonus occurrences if the word appears in the document title) [ double, default = $bestTfFHB ] ")
       fancyHitBonus = scala.io.StdIn.readLine()
     } while (!(fancyHitBonus.equals("") || Try {
                                                  fancyHitBonus.toDouble
@@ -623,7 +623,7 @@ object SearchEngine {
   }
 
   /**
-    * Precomputes the norms used by the Vector Space model. This is required in order to take
+    * Precomputes the norms used by the Vector Space model and stores them in the Database.
     */
   def precomputeNorms(): Unit = {
     val (wp, dr, ii, rm) = setup("tf", ("nnn.nnn", 0.0)) //used to initialize inverted index, actual arguments don't matter
