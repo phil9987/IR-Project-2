@@ -578,7 +578,6 @@ object SearchEngine {
         " Prints the MAP for each hyperparameter combination with details for the best solution.")
       println("4.) Perform Timing comparison with and without inverted index")
       println("5.) Interactive search")
-      println("6.) Precompute Vector Norms. - Gets also executed once you use the tf model")
       println("=============================================================")
       var i = 0
       do {
@@ -591,7 +590,6 @@ object SearchEngine {
         case 3 => gridSearch()
         case 4 => timingTest()
         case 5 => interactive()
-        case 6 => precomputeNorms()
       }
       sys.exit()
     } else {
