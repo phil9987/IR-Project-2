@@ -581,7 +581,7 @@ object SearchEngine {
       println("=============================================================")
       var i = 0
       do {
-        println("Your choice? [1-6]")
+        println("Your choice? [1-5]")
         i = scala.io.StdIn.readInt()
       } while (i < 1 || i > 6)
       i match {
