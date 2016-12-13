@@ -10,11 +10,11 @@ object SearchEngine {
   val logger = new Logger("SearchEngine")
 
   //the best found parameters / default parameters
-  val bestTfFunctionString = "lpn.nnn"
+  val bestTfFunctionString = "lnn.npn"
   val bestTfFHB = 10.0
   val bestLanguageTheta = .75
   val bestLanguageZeta = 200
-  val bestLanguageFancyHitRange = 3.0
+  val bestLanguageFancyHitBonus = 3.0
 
   //methods for running the timing tests
 
@@ -52,7 +52,7 @@ object SearchEngine {
     val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitBonus)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -94,7 +94,7 @@ object SearchEngine {
     val dr = new PassThroughDocumentReader(wp)
     val ii = new PassThroughInvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitBonus)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -136,7 +136,7 @@ object SearchEngine {
     val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitBonus)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -178,7 +178,7 @@ object SearchEngine {
     val dr = new LevelDBDocumentReader(wp)
     val ii = new InvertedIndex(dr)
     val t2 = System.nanoTime()
-    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitRange)
+    val rm = new LanguageModel(ii, wp, bestLanguageTheta, bestLanguageZeta, bestLanguageFancyHitBonus)
     var MAP = 0.0
     val keys = QueryMetric.codeToQuery.keys.toList
     for (queryId <- keys) {
@@ -292,14 +292,14 @@ object SearchEngine {
                         }.getOrElse(bestLanguageZeta)
     var fhrInput = ""
     do {
-      println(s"fancyHitBonus : ( counts as bonus occurences if the word appears in the document title) [ double, default = $bestLanguageFancyHitRange ] ") //TODO write explanation
+      println(s"fancyHitBonus : ( counts as bonus occurences if the word appears in the document title) [ double, default = $bestLanguageFancyHitBonus ] ") //TODO write explanation
       fhrInput = scala.io.StdIn.readLine()
     } while (!(fhrInput.equals("") || Try {
                                             fhrInput.toDouble
                                           }.isSuccess))
     val fhr: Double = Try {
                             fhrInput.toDouble
-                          }.getOrElse(bestLanguageFancyHitRange)
+                          }.getOrElse(bestLanguageFancyHitBonus)
     ("language", (theta, zeta, fhr))
   }
 

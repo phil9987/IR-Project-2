@@ -1,3 +1,4 @@
+import java.nio.file._
 /**
   * The RankingModel implements the core of the search engine. It retrieves the relevant documents form the inverted
   * index and ranks them according to some metric. This class is an abstract implementation and the scoringFunction
@@ -187,6 +188,11 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
                                                                    preprocessor) {
 
   override val logger = new Logger("VectorSpaceModel")
+
+  if (!Files.exists(Paths.get(Vectors.levelDBFileName))) {
+    logger.log("DID NOT FIND VECTORNORMS DATABASE! Creating it....")
+    Vectors.saveNorms()
+  }
 
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
       Vectors.score(infoList, query, modelMode, fancyHitBonus)
