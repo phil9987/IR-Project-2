@@ -189,12 +189,12 @@ class VectorSpaceModel(invertedIndex: InvertedIndex,
 
   override val logger = new Logger("VectorSpaceModel")
 
-  if (!Files.exists(Paths.get(Vectors.levelDBFileName))) {
+  if (!Files.exists(Paths.get(TermVectors.levelDBFileName))) {
     logger.log("DID NOT FIND VECTORNORMS DATABASE! Creating it....")
-    Vectors.saveNorms()
+    TermVectors.saveNorms()
   }
 
   override def scoringFunction(infoList: List[WordInDocInfo], query: List[String]): Double = {
-      Vectors.score(infoList, query, modelMode, fancyHitBonus)
+      TermVectors.score(infoList, query, modelMode, fancyHitBonus)
   }
 }

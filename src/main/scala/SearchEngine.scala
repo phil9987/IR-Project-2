@@ -319,7 +319,7 @@ object SearchEngine {
     val wp = new WordPreprocessor()
     val dr = new DocumentReader(wp)
     val ii = new InvertedIndex(dr)
-    Vectors.ii = ii
+    TermVectors.ii = ii
     val rm = if (modelType == "language") {
       val par = modelParameter.asInstanceOf[(Double, Int, Double)]
       new LanguageModel(ii, wp, par._1, par._2, par._3)
@@ -627,6 +627,6 @@ object SearchEngine {
     */
   def precomputeNorms(): Unit = {
     val (wp, dr, ii, rm) = setup("tf", ("nnn.nnn", 0.0)) //used to initialize inverted index, actual arguments don't matter
-    Vectors.saveNorms()
+    TermVectors.saveNorms()
   }
 }

@@ -7,9 +7,9 @@ import org.iq80.leveldb.{DB, Options}
 
 import scala.collection.mutable.{HashMap => MutHashMap}
 
-object Vectors{
+object TermVectors{
 
-  type TermVector = List[Double]
+  type TVector = List[Double]
   val vectorTypes = List("nn", "nt", "np", "ln", "lt", "lp", "bn", "bt", "bp")
   var ii: InvertedIndex = _
   var levelDBOptions : Options = new Options()
@@ -124,9 +124,9 @@ object Vectors{
     */
   def score(infoList: List[WordInDocInfo], query: List[String], modelMode: String, fancyHitBonus: Double): Double = {
     docVectorRepresentation = modelMode.substring(0, 2)
-    val docVector: TermVector = infoList.sortBy(_.word)
+    val docVector: TVector = infoList.sortBy(_.word)
       .map(info => tf(info, modelMode(0), fancyHitBonus) * idf(info, modelMode(1)))
-    val queryVector: TermVector = query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
+    val queryVector: TVector = query.sorted.map(word => WordInDocInfo(word, infoList.head.docName, infoList
       .head.docId, 1, isInHeader = false)
     ).map(info => tf(info, modelMode(4)) * idf(info, modelMode(5)))
 
@@ -142,7 +142,7 @@ object Vectors{
     * @param normMode How to normalize (n=> no normalization, c => cosine normalization)
     * @return The normalized vector
     */
-  def normalize(v: TermVector, docId: Int, normMode : Char ): TermVector = {
+  def normalize(v: TVector, docId: Int, normMode : Char ): TVector = {
     assert(normMode == 'n' || normMode == 'c')
     if (normMode == 'n')
       v
@@ -176,7 +176,7 @@ object Vectors{
     * @param y the second vector, usually represents query
     * @return Double, the dot product x * y
     */
-  def dotProduct(x : TermVector, y: TermVector) : Double = {
+  def dotProduct(x : TVector, y: TVector) : Double = {
     assert(x.length == y.length)
     (x zip y).map(x => x._1 * x._2).sum
   }
